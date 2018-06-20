@@ -2,7 +2,7 @@
   "name": "stream-csv-as-json",
   "version": "1.0.0",
   "description": "Streams CSV files.",
-  "main": "src/main.js",
+  "main": "index.js",
   "scripts": {
     "test": "node tests/tests.js"
   },
