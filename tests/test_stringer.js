@@ -106,5 +106,53 @@ unit.add(module, [
       eval(t.TEST('result === expected'));
       async.done();
     });
+  },
+  function test_stringer_simple_quoted_separator(t) {
+    const async = t.startAsync('test_stringer_simple_quoted_separator');
+
+    let result = '';
+
+    const table = [['1', '|', '', '"'], ['2', 'three\r\n', 'four', 'five']],
+      expected = '"1"|"|"|""|""""\r\n"2"|"three\r\n"|"four"|"five"\r\n',
+      pipeline = new ReadString(toCsv(table))
+        .pipe(parser())
+        .pipe(stringer({separator: '|'}))
+        .pipe(
+          new Writable({
+            write(chunk, encoding, callback) {
+              result += chunk.toString();
+              callback(null);
+            }
+          })
+        );
+
+    pipeline.on('finish', () => {
+      eval(t.TEST('result === expected'));
+      async.done();
+    });
+  },
+  function test_stringer_values_quoted_separator(t) {
+    const async = t.startAsync('test_stringer_values_quoted_separator');
+
+    let result = '';
+
+    const table = [['1', '|', '', '"'], ['2', 'three\r\n', 'four', 'five']],
+      expected = '1|"|"||""""\r\n2|"three\r\n"|four|five\r\n',
+      pipeline = new ReadString(toCsv(table))
+        .pipe(parser())
+        .pipe(stringer({useValues: true, separator: '|'}))
+        .pipe(
+          new Writable({
+            write(chunk, encoding, callback) {
+              result += chunk.toString();
+              callback(null);
+            }
+          })
+        );
+
+    pipeline.on('finish', () => {
+      eval(t.TEST('result === expected'));
+      async.done();
+    });
   }
 ]);

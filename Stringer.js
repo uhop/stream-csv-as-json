@@ -90,7 +90,7 @@ class Stringer extends Transform {
         if (this._skipSeparator) {
           this._skipSeparator = false;
         } else {
-          this.push(',');
+          this.push(this._separator);
         }
         const value = chunk.value;
         if (this._containsQuotables.test(value)) {
