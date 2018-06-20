@@ -68,5 +68,24 @@ unit.add(module, [
       eval(t.TEST('valuesWithDoubleQuote === 1'));
       async.done();
     });
+  },
+  function test_parser_separator(t) {
+    const async = t.startAsync('test_parser_separator');
+
+    const input = '1||""|"""|"\r\n2|three|"four\r\n"|five\r\n',
+      expected = [['1', '', '', '"|'], ['2', 'three', 'four\r\n', 'five']],
+      result = [];
+
+    const pipeline = new ReadString(input).pipe(new Parser({separator: '|'}));
+    const asm = new Assembler();
+
+    pipeline.on('data', token => {
+      asm[token.name] && asm[token.name](token.value);
+      asm.done && result.push(asm.current);
+    });
+    pipeline.on('end', () => {
+      eval(t.TEST('t.unify(result, expected)'));
+      async.done();
+    });
   }
 ]);

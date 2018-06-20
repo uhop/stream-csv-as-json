@@ -43,6 +43,18 @@ class Parser extends Transform {
     }
     !this._packStrings && (this._streamStrings = true);
 
+    this._separator = options && options.separator || ',';
+    if (this._separator === ',') {
+      this._patterns = patterns;
+    } else {
+      this._patterns = {};
+      const sep = this._separator.replace(/[#-.]|[[-^]|[?|{}]/g, '\\$&'),
+        sepOr = '|' + sep + '|', sepNot = '[^' + sep;
+      Object.keys(patterns).forEach(key => {
+        this._patterns[key] = new RegExp(patterns[key].source.replace('|,|', sepOr).replace('[^,', sepNot), noSticky ? '' : 'y');
+      });
+    }
+
     this._buffer = '';
     this._startRow = true;
     this._expect = 'value';
@@ -72,8 +84,8 @@ class Parser extends Transform {
     main: while (index < this._buffer.length) {
       switch (this._expect) {
         case 'value':
-          patterns.value.lastIndex = index;
-          match = patterns.value.exec(this._buffer);
+          this._patterns.value.lastIndex = index;
+          match = this._patterns.value.exec(this._buffer);
           if (!match) {
             if (index < this._buffer.length) return callback(new Error('Parser cannot parse input: expected a value'));
             break main; // wait for more input
@@ -97,7 +109,7 @@ class Parser extends Transform {
               this._expect = 'value';
               this._expectLF = true;
               break;
-            case ',':
+            case this._separator:
               if (this._streamStrings) {
                 this.push({name: 'startString'});
                 this.push({name: 'endString'});
@@ -122,15 +134,15 @@ class Parser extends Transform {
           }
           break;
         case 'regularValue':
-          patterns.regularValue.lastIndex = index;
-          match = patterns.regularValue.exec(this._buffer);
+          this._patterns.regularValue.lastIndex = index;
+          match = this._patterns.regularValue.exec(this._buffer);
           if (!match) {
             if (index < this._buffer.length) return callback(new Error('Parser cannot parse input: a regular value'));
             break main; // wait for more input
           }
           value = match[0];
           switch (value) {
-            case ',':
+            case this._separator:
               this._streamStrings && this.push({name: 'endString'});
               if (this._packStrings) {
                 this.push({name: 'stringValue', value: this._accumulator});
@@ -164,8 +176,8 @@ class Parser extends Transform {
           }
           break;
         case 'quotedValue':
-          patterns.quotedValue.lastIndex = index;
-          match = patterns.quotedValue.exec(this._buffer);
+          this._patterns.quotedValue.lastIndex = index;
+          match = this._patterns.quotedValue.exec(this._buffer);
           if (!match) {
             if (index < this._buffer.length) return callback(new Error('Parser cannot parse input: expected a quoted value'));
             break main; // wait for more input
@@ -184,10 +196,10 @@ class Parser extends Transform {
           }
           break;
         case 'quotedContinuation':
-          patterns.quotedContinuation.lastIndex = index;
-          match = patterns.quotedContinuation.exec(this._buffer);
+          this._patterns.quotedContinuation.lastIndex = index;
+          match = this._patterns.quotedContinuation.exec(this._buffer);
           if (!match) {
-            if (index < this._buffer.length) return callback(new Error("Parser cannot parse input: expected '\"', ',', or EOL"));
+            if (index < this._buffer.length) return callback(new Error("Parser cannot parse input: expected '\"', a separator, or EOL"));
             break main; // wait for more input
           }
           value = match[0];
@@ -201,7 +213,7 @@ class Parser extends Transform {
               this.push({name: 'stringValue', value: this._accumulator});
               this._accumulator = '';
             }
-            if (value !== ',') {
+            if (value !== this._separator) {
               this.push({name: 'endArray'});
               this._startRow = true;
             }
