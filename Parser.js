@@ -44,7 +44,6 @@ class Parser extends Transform {
     !this._packStrings && (this._streamStrings = true);
 
     this._buffer = '';
-    this._done = false;
     this._startRow = true;
     this._expect = 'value';
     this._expectLF = false;
@@ -57,9 +56,7 @@ class Parser extends Transform {
   }
 
   _flush(callback) {
-    this._done = true;
-    // this._processInput(callback);
-
+    if (this._expect === 'quotedValue') return callback(new Error('Parser cannot parse input: expected a quoted value'));
     if (this._expect !== 'value') {
       this._streamStrings && this.push({name: 'endString'});
       this._packStrings && this.push({name: 'stringValue', value: this._accumulator});
@@ -72,13 +69,13 @@ class Parser extends Transform {
     let match,
       value,
       index = 0;
-    main: for (;;) {
+    main: while (index < this._buffer.length) {
       switch (this._expect) {
         case 'value':
           patterns.value.lastIndex = index;
           match = patterns.value.exec(this._buffer);
           if (!match) {
-            if (index < this._buffer.length && this._done) return callback(new Error('Parser cannot parse input: expected a value'));
+            if (index < this._buffer.length) return callback(new Error('Parser cannot parse input: expected a value'));
             break main; // wait for more input
           }
           value = match[0];
@@ -128,10 +125,7 @@ class Parser extends Transform {
           patterns.regularValue.lastIndex = index;
           match = patterns.regularValue.exec(this._buffer);
           if (!match) {
-            if (index < this._buffer.length && this._done) return callback(new Error('Parser cannot parse input: a regular value'));
-            // if (this._done) {
-            //   return callback(new Error('Parser has expected a regular value'));
-            // }
+            if (index < this._buffer.length) return callback(new Error('Parser cannot parse input: a regular value'));
             break main; // wait for more input
           }
           value = match[0];
@@ -173,7 +167,7 @@ class Parser extends Transform {
           patterns.quotedValue.lastIndex = index;
           match = patterns.quotedValue.exec(this._buffer);
           if (!match) {
-            if (index < this._buffer.length && this._done) return callback(new Error('Parser cannot parse input: expected a quoted value'));
+            if (index < this._buffer.length) return callback(new Error('Parser cannot parse input: expected a quoted value'));
             break main; // wait for more input
           }
           value = match[0];
@@ -193,7 +187,7 @@ class Parser extends Transform {
           patterns.quotedContinuation.lastIndex = index;
           match = patterns.quotedContinuation.exec(this._buffer);
           if (!match) {
-            if (index < this._buffer.length && this._done) return callback(new Error("Parser cannot parse input: expected '\"', ',', or EOL"));
+            if (index < this._buffer.length) return callback(new Error("Parser cannot parse input: expected '\"', ',', or EOL"));
             break main; // wait for more input
           }
           value = match[0];
