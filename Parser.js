@@ -3,10 +3,10 @@
 const {Transform} = require('stream');
 
 const patterns = {
-  value: /^(?:\"|,|\n|\r\n|\r|[\s\S])/,
-  regularValue: /^(?:[^,\r\n]{1,256}|,|\n|\r\n|\r)/,
+  value: /^(?:\"|,|\n|\r|[\s\S])/,
+  regularValue: /^(?:[^,\r\n]{1,256}|,|\n|\r)/,
   quotedValue: /^(?:[^\"]{1,256}|\")/,
-  quotedContinuation: /^(?:\"|,|\n|\r\n|\r)/
+  quotedContinuation: /^(?:\"|,|\n|\r)/
 };
 
 let noSticky = true;
@@ -25,8 +25,6 @@ try {
     }
     patterns[key] = new RegExp(src, 'y');
   });
-
-const eol = {'\r': 1, '\n': 1, '\r\n': 1};
 
 class Parser extends Transform {
   static make(options) {
@@ -49,6 +47,7 @@ class Parser extends Transform {
     this._done = false;
     this._startRow = true;
     this._expect = 'value';
+    this._expectLF = false;
     this._accumulator = '';
   }
 
@@ -59,7 +58,14 @@ class Parser extends Transform {
 
   _flush(callback) {
     this._done = true;
-    this._processInput(callback);
+    // this._processInput(callback);
+
+    if (this._expect !== 'value') {
+      this._streamStrings && this.push({name: 'endString'});
+      this._packStrings && this.push({name: 'stringValue', value: this._accumulator});
+      this.push({name: 'endArray'});
+    }
+    callback(null);
   }
 
   _processInput(callback) {
@@ -72,11 +78,7 @@ class Parser extends Transform {
           patterns.value.lastIndex = index;
           match = patterns.value.exec(this._buffer);
           if (!match) {
-            if (index < this._buffer.length) {
-              if (this._done) {
-                return callback(new Error('Parser cannot parse input: expected a value'));
-              }
-            }
+            if (index < this._buffer.length && this._done) return callback(new Error('Parser cannot parse input: expected a value'));
             break main; // wait for more input
           }
           value = match[0];
@@ -89,12 +91,14 @@ class Parser extends Transform {
               this._streamStrings && this.push({name: 'startString'});
               this._expect = 'quotedValue';
               break;
-            case '\r':
             case '\n':
-            case '\r\n':
+              if (this._expectLF) break;
+              // intentional fall down
+            case '\r':
               this.push({name: 'endArray'});
               this._startRow = true;
               this._expect = 'value';
+              this._expectLF = true;
               break;
             case ',':
               if (this._streamStrings) {
@@ -113,6 +117,7 @@ class Parser extends Transform {
               this._expect = 'regularValue';
               break;
           }
+          this._expectLF = value === '\r';
           if (noSticky) {
             this._buffer = this._buffer.slice(value.length);
           } else {
@@ -123,32 +128,41 @@ class Parser extends Transform {
           patterns.regularValue.lastIndex = index;
           match = patterns.regularValue.exec(this._buffer);
           if (!match) {
-            if (index < this._buffer.length) {
-              if (this._done || this._buffer.length - index >= 6) {
-                return callback(new Error('Parser cannot parse input: a regular value'));
-              }
-            }
-            if (this._done) {
-              return callback(new Error('Parser has expected a regular value'));
-            }
+            if (index < this._buffer.length && this._done) return callback(new Error('Parser cannot parse input: a regular value'));
+            // if (this._done) {
+            //   return callback(new Error('Parser has expected a regular value'));
+            // }
             break main; // wait for more input
           }
           value = match[0];
-          if (value === ',' || eol[value] === 1) {
-            this._streamStrings && this.push({name: 'endString'});
-            if (this._packStrings) {
-              this.push({name: 'stringValue', value: this._accumulator});
-              this._accumulator = '';
-            }
-            this._expect = 'value';
-            if (value !== ',') {
+          switch (value) {
+            case ',':
+              this._streamStrings && this.push({name: 'endString'});
+              if (this._packStrings) {
+                this.push({name: 'stringValue', value: this._accumulator});
+                this._accumulator = '';
+              }
+              this._expect = 'value';
+              break;
+            case '\n':
+             if (this._expectLF) break;
+             // intentional fall down
+            case '\r':
+              this._streamStrings && this.push({name: 'endString'});
+              if (this._packStrings) {
+                this.push({name: 'stringValue', value: this._accumulator});
+                this._accumulator = '';
+              }
               this.push({name: 'endArray'});
               this._startRow = true;
-            }
-          } else {
-            this._streamStrings && this.push({name: 'stringChunk', value});
-            this._packStrings && (this._accumulator += value);
+              this._expect = 'value';
+              break;
+            default:
+              this._streamStrings && this.push({name: 'stringChunk', value});
+              this._packStrings && (this._accumulator += value);
+              break;
           }
+          this._expectLF = value === '\r';
           if (noSticky) {
             this._buffer = this._buffer.slice(value.length);
           } else {
@@ -159,11 +173,8 @@ class Parser extends Transform {
           patterns.quotedValue.lastIndex = index;
           match = patterns.quotedValue.exec(this._buffer);
           if (!match) {
-            if (index < this._buffer.length || this._done) {
-              return callback(new Error('Parser cannot parse input: expected a quoted value'));
-            }
-            // wait for more input
-            break main;
+            if (index < this._buffer.length && this._done) return callback(new Error('Parser cannot parse input: expected a quoted value'));
+            break main; // wait for more input
           }
           value = match[0];
           if (value === '"') {
@@ -182,9 +193,7 @@ class Parser extends Transform {
           patterns.quotedContinuation.lastIndex = index;
           match = patterns.quotedContinuation.exec(this._buffer);
           if (!match) {
-            if (index < this._buffer.length || this._done) {
-              return callback(new Error("Parser cannot parse input: expected '\"', ',', or EOL"));
-            }
+            if (index < this._buffer.length && this._done) return callback(new Error("Parser cannot parse input: expected '\"', ',', or EOL"));
             break main; // wait for more input
           }
           value = match[0];
@@ -204,6 +213,7 @@ class Parser extends Transform {
             }
             this._expect = 'value';
           }
+          this._expectLF = value === '\r';
           if (noSticky) {
             this._buffer = this._buffer.slice(value.length);
           } else {
