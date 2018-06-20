@@ -24,7 +24,8 @@
     "url": "https://github.com/uhop/stream-csv-as-json/issues"
   },
   "homepage": "https://github.com/uhop/stream-csv-as-json#readme",
-  "dependencies": {
-    "heya-unit": "^0.3.0"
+  "devDependencies": {
+    "heya-unit": "^0.3.0",
+    "stream-json": "^1.0.1"
   }
 }
