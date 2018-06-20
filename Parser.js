@@ -43,21 +43,21 @@ class Parser extends Transform {
     }
     !this._packStrings && (this._streamStrings = true);
 
-    this._separator = options && options.separator || ',';
+    this._separator = (options && options.separator) || ',';
     if (this._separator === ',') {
       this._patterns = patterns;
     } else {
       this._patterns = {};
       const sep = this._separator.replace(/[#-.]|[[-^]|[?|{}]/g, '\\$&'),
-        sepOr = '|' + sep + '|', sepNot = '[^' + sep;
+        sepOr = '|' + sep + '|',
+        sepNot = '[^' + sep;
       Object.keys(patterns).forEach(key => {
         this._patterns[key] = new RegExp(patterns[key].source.replace('|,|', sepOr).replace('[^,', sepNot), noSticky ? '' : 'y');
       });
     }
 
     this._buffer = '';
-    this._startRow = true;
-    this._expect = 'value';
+    this._expect = 'value1';
     this._expectLF = false;
     this._accumulator = '';
   }
@@ -68,11 +68,24 @@ class Parser extends Transform {
   }
 
   _flush(callback) {
-    if (this._expect === 'quotedValue') return callback(new Error('Parser cannot parse input: expected a quoted value'));
-    if (this._expect !== 'value') {
-      this._streamStrings && this.push({name: 'endString'});
-      this._packStrings && this.push({name: 'stringValue', value: this._accumulator});
-      this.push({name: 'endArray'});
+    switch (this._expect) {
+      case 'quotedValue':
+        return callback(new Error('Parser cannot parse input: expected a quoted value'));
+      case 'value1':
+        break;
+      case 'value':
+        if (this._streamStrings) {
+          this.push({name: 'startString'});
+          this.push({name: 'endString'});
+        }
+        this._packStrings && this.push({name: 'stringValue', value: ''});
+        this.push({name: 'endArray'});
+        break;
+      default:
+        this._streamStrings && this.push({name: 'endString'});
+        this._packStrings && this.push({name: 'stringValue', value: this._accumulator});
+        this.push({name: 'endArray'});
+        break;
     }
     callback(null);
   }
@@ -83,6 +96,7 @@ class Parser extends Transform {
       index = 0;
     main: while (index < this._buffer.length) {
       switch (this._expect) {
+        case 'value1':
         case 'value':
           this._patterns.value.lastIndex = index;
           match = this._patterns.value.exec(this._buffer);
@@ -91,10 +105,7 @@ class Parser extends Transform {
             break main; // wait for more input
           }
           value = match[0];
-          if (this._startRow) {
-            this._startRow = false;
-            this.push({name: 'startArray'});
-          }
+          this._expect === 'value1' && !(value === '\n' && this._expectLF) && this.push({name: 'startArray'});
           switch (value) {
             case '"':
               this._streamStrings && this.push({name: 'startString'});
@@ -102,12 +113,17 @@ class Parser extends Transform {
               break;
             case '\n':
               if (this._expectLF) break;
-              // intentional fall down
+            // intentional fall down
             case '\r':
+              if (this._expect === 'value') {
+                if (this._streamStrings) {
+                  this.push({name: 'startString'});
+                  this.push({name: 'endString'});
+                }
+                this._packStrings && this.push({name: 'stringValue', value: ''});
+              }
               this.push({name: 'endArray'});
-              this._startRow = true;
-              this._expect = 'value';
-              this._expectLF = true;
+              this._expect = 'value1';
               break;
             case this._separator:
               if (this._streamStrings) {
@@ -151,8 +167,8 @@ class Parser extends Transform {
               this._expect = 'value';
               break;
             case '\n':
-             if (this._expectLF) break;
-             // intentional fall down
+              if (this._expectLF) break;
+            // intentional fall down
             case '\r':
               this._streamStrings && this.push({name: 'endString'});
               if (this._packStrings) {
@@ -160,8 +176,7 @@ class Parser extends Transform {
                 this._accumulator = '';
               }
               this.push({name: 'endArray'});
-              this._startRow = true;
-              this._expect = 'value';
+              this._expect = 'value1';
               break;
             default:
               this._streamStrings && this.push({name: 'stringChunk', value});
@@ -213,11 +228,12 @@ class Parser extends Transform {
               this.push({name: 'stringValue', value: this._accumulator});
               this._accumulator = '';
             }
-            if (value !== this._separator) {
+            if (value === this._separator) {
+              this._expect = 'value';
+            } else {
               this.push({name: 'endArray'});
-              this._startRow = true;
+              this._expect = 'value1';
             }
-            this._expect = 'value';
           }
           this._expectLF = value === '\r';
           if (noSticky) {
