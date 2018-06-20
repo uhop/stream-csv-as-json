@@ -6,5 +6,6 @@ require('./test_parser');
 require('./test_sliding');
 require('./test_main');
 require('./test_stringer');
+require('./test_asObject');
 
 unit.run();
