@@ -2,14 +2,6 @@
 
 const {Transform} = require('stream');
 
-const skipValue = endName =>
-  function(chunk, encoding, callback) {
-    if (chunk.name === endName) {
-      this._transform = this._valueTransform;
-    }
-    callback(null);
-  };
-
 class Stringer extends Transform {
   static make(options) {
     return new Stringer(options);
@@ -25,7 +17,7 @@ class Stringer extends Transform {
       'useValues' in options && (this._useStringValues = options.useValues);
       'useStringValues' in options && (this._useStringValues = options.useStringValues);
       this._separator = options.separator || ',';
-      const sep = this._separator.replace(/[#-.]|[[-^]|[?|{}]/g, '\\$&')
+      const sep = this._separator.replace(/[#-.]|[[-^]|[?|{}]/g, '\\$&');
       this._containsQuotables = new RegExp(this._containsQuotables.source.replace('[,', '[' + sep));
     }
 
@@ -48,7 +40,7 @@ class Stringer extends Transform {
         } else {
           this.push(this._separator);
         }
-        // intentional fall through
+      // intentional fall through
       case 'endString':
         this.push('"');
         break;
@@ -85,12 +77,17 @@ class Stringer extends Transform {
         }
         break;
       case 'startString':
-        this._transform = skipValue('endString');
-      // case 'stringChunk':
-      // case 'endString':
+        this._transform = this._skipString;
         break; // skip
       default:
         return callback(new Error('Unexpected token: ' + chunk.name));
+    }
+    callback(null);
+  }
+
+  _skipString(chunk, encoding, callback) {
+    if (chunk.name === 'endString') {
+      this._transform = this._valueTransform;
     }
     callback(null);
   }
