@@ -11,7 +11,7 @@ const runSlidingWindowTest = (t, quant) => {
   const async = t.startAsync('test_sliding: ' + quant);
 
   const table = [['1', '', '', '"'], ['2', 'three', 'four', 'five']],
-    input = table.map(row => row.map(value => (/[\r\n\"]/.test(value) ? '"' + value.replace('"', '""') + '"' : value)).join(',')).join('\r\n'),
+    input = table.map(row => row.map(value => (/[,\r\n\"]/.test(value) ? '"' + value.replace('"', '""') + '"' : value)).join(',')).join('\r\n'),
     pipeline = new ReadString(input, quant).pipe(new Parser()),
     asm = new Assembler(),
     result = [];
