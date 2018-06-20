@@ -1,0 +1,6 @@
+node_modules/*
+*.sublime-*
+report/*
+coverage/*
+.AppleDouble
+.DS_Store
