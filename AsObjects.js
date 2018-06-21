@@ -2,9 +2,15 @@
 
 const {Transform} = require('stream');
 
+const withParser = require('stream-json/utils/withParser');
+
 class AsObjects extends Transform {
   static make(options) {
     return new AsObjects(options);
+  }
+
+  static withParser(options) {
+    return withParser(AsObjects.make, options);
   }
 
   constructor(options) {
@@ -69,7 +75,7 @@ class AsObjects extends Transform {
         break;
       case 'startString':
       case 'stringValue':
-        const key = this._index < this._keys.length ? this._keys[this._index] : (this._fieldPrefix + this._index);
+        const key = this._index < this._keys.length ? this._keys[this._index] : this._fieldPrefix + this._index;
         ++this._index;
         if (this._streamKeys) {
           this.push({name: 'startKey'});
