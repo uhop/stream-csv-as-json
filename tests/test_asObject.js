@@ -46,5 +46,24 @@ unit.add(module, [
       eval(t.TEST('t.unify(result, expected)'));
       async.done();
     });
+  },
+  function test_asObject_empty_values(t) {
+    const async = t.startAsync('test_asObject_empty_values');
+
+    const input = 'alpha,,gamma\r\n1,,"",""""\r\n2,three,"four",five\r\n',
+      expected = [{alpha: '1', column1: '', gamma: '', column3: '"'}, {alpha: '2', column1: 'three', gamma: 'four', column3: 'five'}],
+      result = [];
+
+    const pipeline = new ReadString(input).pipe(parser({useValues: true})).pipe(asObjects({fieldPrefix: 'column'}));
+    const asm = new Assembler();
+
+    pipeline.on('data', token => {
+      asm[token.name] && asm[token.name](token.value);
+      asm.done && result.push(asm.current);
+    });
+    pipeline.on('end', () => {
+      eval(t.TEST('t.unify(result, expected)'));
+      async.done();
+    });
   }
 ]);
