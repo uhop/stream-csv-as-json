@@ -75,7 +75,7 @@ class AsObjects extends Transform {
         break;
       case 'startString':
       case 'stringValue':
-        const key = this._index < this._keys.length ? this._keys[this._index] : this._fieldPrefix + this._index;
+        const key = (this._index < this._keys.length && this._keys[this._index]) || this._fieldPrefix + this._index;
         ++this._index;
         if (this._streamKeys) {
           this.push({name: 'startKey'});
