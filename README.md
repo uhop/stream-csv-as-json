@@ -1,4 +1,4 @@
-# stream-json
+# stream-csv-as-json
 
 [![Build status][travis-image]][travis-url]
 [![Dependencies][deps-image]][deps-url]
