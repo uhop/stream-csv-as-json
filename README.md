@@ -75,6 +75,7 @@ Obviously, if a bug is found, or a way to simplify existing components, or new g
 
 ## Release History
 
+- 1.0.1 *minor readme tweaks, added TypeScript typings and the badge.*
 - 1.0.0 *the first 1.0 release.*
 
 [npm-image]:      https://img.shields.io/npm/v/stream-csv-as-json.svg
