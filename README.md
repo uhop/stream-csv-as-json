@@ -1,11 +1,7 @@
-# stream-csv-as-json
+# stream-csv-as-json [![NPM version][npm-img]][npm-url]
 
-[![Build status][travis-image]][travis-url]
-[![Dependencies][deps-image]][deps-url]
-[![devDependencies][dev-deps-image]][dev-deps-url]
-[![NPM version][npm-image]][npm-url]
-[![TypeScript definitions on DefinitelyTyped][definitelytyped-image]](definitelytyped-url)
-
+[npm-img]: https://img.shields.io/npm/v/stream-csv-as-json.svg
+[npm-url]: https://npmjs.org/package/stream-csv-as-json
 
 `stream-csv-as-json` is a micro-library of node.js stream components with minimal dependencies for creating custom data processors oriented on processing huge CSV files while requiring a minimal memory footprint. It can parse CSV files far exceeding available memory. Even individual primitive data items can be streamed piece-wise. Streaming SAX-inspired event-based API is included as well.
 
@@ -78,14 +74,3 @@ Obviously, if a bug is found, or a way to simplify existing components, or new g
 - 1.0.2 *Technical release: updated deps, updated license's year.*
 - 1.0.1 *Minor readme tweaks, added TypeScript typings and the badge.*
 - 1.0.0 *The first 1.0 release.*
-
-[npm-image]:      https://img.shields.io/npm/v/stream-csv-as-json.svg
-[npm-url]:        https://npmjs.org/package/stream-csv-as-json
-[deps-image]:     https://img.shields.io/david/uhop/stream-csv-as-json.svg
-[deps-url]:       https://david-dm.org/uhop/stream-csv-as-json
-[dev-deps-image]: https://img.shields.io/david/dev/uhop/stream-csv-as-json.svg
-[dev-deps-url]:   https://david-dm.org/uhop/stream-csv-as-json?type=dev
-[travis-image]:   https://img.shields.io/travis/uhop/stream-csv-as-json.svg
-[travis-url]:     https://travis-ci.org/uhop/stream-csv-as-json
-[definitelytyped-image]: https://img.shields.io/badge/DefinitelyTyped-.d.ts-blue.svg
-[definitelytyped-url]:   https://definitelytyped.org
