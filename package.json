@@ -31,5 +31,9 @@
   },
   "dependencies": {
     "stream-json": "^1.6.1"
-  }
+  },
+  "files": [
+    "/*.js",
+    "/utils"
+  ]
 }
