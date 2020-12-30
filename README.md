@@ -71,6 +71,7 @@ Obviously, if a bug is found, or a way to simplify existing components, or new g
 
 ## Release History
 
+- 1.0.4 *technical release: updated deps.*
 - 1.0.3 *technical release: updated deps.*
 - 1.0.2 *technical release: updated deps, updated license's year.*
 - 1.0.1 *minor readme tweaks, added TypeScript typings and the badge.*

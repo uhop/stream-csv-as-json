@@ -1,6 +1,6 @@
 {
   "name": "stream-csv-as-json",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Streams CSV files.",
   "main": "index.js",
   "scripts": {
@@ -27,10 +27,10 @@
   "homepage": "https://github.com/uhop/stream-csv-as-json#readme",
   "devDependencies": {
     "heya-unit": "^0.3.0",
-    "stream-chain": "^2.2.3"
+    "stream-chain": "^2.2.4"
   },
   "dependencies": {
-    "stream-json": "^1.6.1"
+    "stream-json": "^1.7.1"
   },
   "files": [
     "/*.js",
