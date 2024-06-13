@@ -69,8 +69,13 @@ The code of all components is compact and simple. Please take a look at their so
 
 Obviously, if a bug is found, or a way to simplify existing components, or new generic components are created, which can be reused in a variety of projects, don't hesitate to open a ticket, and/or create a pull request.
 
+## License
+
+BSD-3-Clause
+
 ## Release History
 
+- 1.0.5 *technical release: updated deps.*
 - 1.0.4 *technical release: updated deps.*
 - 1.0.3 *technical release: updated deps.*
 - 1.0.2 *technical release: updated deps, updated license's year.*
