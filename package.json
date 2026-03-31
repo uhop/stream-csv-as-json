@@ -27,7 +27,7 @@
   "homepage": "https://github.com/uhop/stream-csv-as-json#readme",
   "devDependencies": {
     "heya-unit": "^0.3.0",
-    "stream-chain": "^2.2.5"
+    "stream-chain": "^3.6.1"
   },
   "dependencies": {
     "stream-json": "^1.8.0"
