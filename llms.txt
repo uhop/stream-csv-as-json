@@ -1,0 +1,136 @@
+# stream-csv-as-json
+
+> Micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. Parse CSV files far exceeding available memory using a SAX-inspired streaming token API. Companion to `stream-json`; uses the same token protocol. One dependency: `stream-json`.
+
+## Install
+
+npm i stream-csv-as-json
+
+## Quick start
+
+```js
+const {chain} = require('stream-chain');
+const {parser} = require('stream-csv-as-json');
+const {asObjects} = require('stream-csv-as-json/AsObjects');
+const {streamValues} = require('stream-json/streamers/StreamValues');
+const fs = require('fs');
+
+const pipeline = chain([
+  fs.createReadStream('data.csv'),
+  parser(),
+  asObjects(),
+  streamValues(),
+  ({value}) => console.log(value)
+]);
+```
+
+## API
+
+### Parser
+
+`Parser` — streaming CSV parser producing `{name, value}` tokens. Extends `Transform`.
+
+- `new Parser(options)` / `Parser.make(options)` / `Parser.parser(options)` — create instance.
+- Options: `packStrings`/`packValues` (default: true), `streamStrings`/`streamValues` (default: true), `separator` (default: `','`).
+
+```js
+const Parser = require('stream-csv-as-json/Parser');
+const p = new Parser();
+fs.createReadStream('data.csv').pipe(p);
+p.on('data', token => console.log(token.name, token.value));
+```
+
+### Main module
+
+The default export creates a Parser with `emit()` applied:
+
+```js
+const make = require('stream-csv-as-json');
+const stream = make();
+stream.on('startArray', () => { /* row start */ });
+stream.on('stringValue', val => { /* field value */ });
+```
+
+### AsObjects
+
+`AsObjects` — Transform stream that uses the first CSV row as field names and converts subsequent rows from array tokens to object tokens.
+
+- `AsObjects.make(options)` / `AsObjects.asObjects(options)` — create instance.
+- `AsObjects.withParser(options)` — create pipeline with CSV parser.
+- Options: `packKeys` (default: true), `streamKeys` (default: true), `useStringValues`/`useValues` (default: false), `fieldPrefix` (default: `'field'`).
+
+```js
+const {asObjects} = require('stream-csv-as-json/AsObjects');
+const {streamValues} = require('stream-json/streamers/StreamValues');
+
+chain([parser(), asObjects(), streamValues(), ({value}) => console.log(value)]);
+```
+
+### Stringer
+
+`Stringer` — Transform stream converting CSV token stream back to CSV text.
+
+- `Stringer.make(options)` / `Stringer.stringer(options)` — create instance.
+- Options: `useStringValues`/`useValues` (default: false), `separator` (default: `','`).
+
+```js
+const Stringer = require('stream-csv-as-json/Stringer');
+chain([parser(), Stringer.make(), fs.createWriteStream('output.csv')]);
+```
+
+## Token protocol
+
+The parser emits `{name, value}` tokens: `startArray`, `endArray`, `startString`, `endString`, `stringChunk`, `stringValue`. After `AsObjects`: `startObject`, `endObject`, `startKey`, `endKey`, `keyValue`.
+
+## Common patterns
+
+### Stream a huge CSV as objects
+
+```js
+const {chain} = require('stream-chain');
+const {parser} = require('stream-csv-as-json');
+const {asObjects} = require('stream-csv-as-json/AsObjects');
+const {streamValues} = require('stream-json/streamers/StreamValues');
+
+chain([
+  fs.createReadStream('huge.csv'),
+  parser(),
+  asObjects(),
+  streamValues(),
+  ({value}) => processRow(value)
+]);
+```
+
+### Compressed CSV processing
+
+```js
+const zlib = require('zlib');
+
+chain([
+  fs.createReadStream('data.csv.gz'),
+  zlib.createGunzip(),
+  parser(),
+  asObjects(),
+  streamValues(),
+  ({value}) => value.department === 'accounting' ? value : null
+]);
+```
+
+### CSV round-trip
+
+```js
+const Stringer = require('stream-csv-as-json/Stringer');
+
+chain([
+  fs.createReadStream('input.csv'),
+  parser(),
+  Stringer.make(),
+  fs.createWriteStream('output.csv')
+]);
+```
+
+## Links
+
+- Docs: https://github.com/uhop/stream-csv-as-json/wiki
+- npm: https://www.npmjs.com/package/stream-csv-as-json
+- Full LLM reference: https://github.com/uhop/stream-csv-as-json/blob/master/llms-full.txt

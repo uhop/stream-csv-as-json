@@ -1,0 +1,367 @@
+# stream-csv-as-json
+
+> A micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. It can parse CSV files far exceeding available memory streaming individual primitives using a SAX-inspired API. One runtime dependency: `stream-json`. Companion project to `stream-json` — uses the same token protocol, integrates with its filters, streamers, and utilities. Works with `stream-chain` for pipeline composition.
+
+- Streaming SAX-inspired CSV parser producing `{name, value}` tokens
+- Parse CSV files far exceeding available memory
+- Individual field values can be streamed piece-wise
+- AsObjects converts header + data rows into object token streams
+- Stringer converts token streams back to CSV text
+- Token protocol compatible with `stream-json` — use its filters, streamers, and utilities downstream
+- Proper backpressure handling via Node.js Transform streams
+- Works with `stream-chain` for pipeline composition
+
+## Quick start
+
+Install:
+
+```bash
+npm i stream-csv-as-json
+```
+
+Stream a huge CSV file as objects:
+
+```js
+const {chain} = require('stream-chain');
+const {parser} = require('stream-csv-as-json');
+const {asObjects} = require('stream-csv-as-json/AsObjects');
+const {streamValues} = require('stream-json/streamers/StreamValues');
+const fs = require('fs');
+
+const pipeline = chain([
+  fs.createReadStream('data.csv'),
+  parser(),
+  asObjects(),
+  streamValues(),
+  ({value}) => {
+    console.log(value);
+    return null;
+  }
+]);
+
+pipeline.on('end', () => console.log('done'));
+```
+
+## Importing
+
+```js
+// Main API (parser + emit)
+const make = require('stream-csv-as-json');
+const {Parser, parser} = require('stream-csv-as-json');
+
+// Parser
+const Parser = require('stream-csv-as-json/Parser');
+
+// AsObjects
+const AsObjects = require('stream-csv-as-json/AsObjects');
+const {asObjects} = require('stream-csv-as-json/AsObjects');
+const {withParser} = require('stream-csv-as-json/AsObjects');
+
+// Stringer
+const Stringer = require('stream-csv-as-json/Stringer');
+const {stringer} = require('stream-csv-as-json/Stringer');
+```
+
+## Token protocol
+
+The parser emits `{name, value}` tokens. All downstream components operate on this protocol. The tokens are compatible with `stream-json`.
+
+| Token name    | Value  | Meaning                    |
+| ------------- | ------ | -------------------------- |
+| `startArray`  | —      | Start of a CSV row         |
+| `endArray`    | —      | End of a CSV row           |
+| `startString` | —      | Start of a field value     |
+| `endString`   | —      | End of a field value       |
+| `stringChunk` | string | Piece of a field value     |
+| `stringValue` | string | Packed complete field value |
+
+By default, the parser emits both streamed tokens (`startString`/`stringChunk`/`endString`) and packed tokens (`stringValue`). This is controlled by options.
+
+After `AsObjects`, additional tokens appear:
+
+| Token name    | Value  | Meaning                      |
+| ------------- | ------ | ---------------------------- |
+| `startObject` | —      | Start of a data row (object) |
+| `endObject`   | —      | End of a data row (object)   |
+| `startKey`    | —      | Start of field name          |
+| `endKey`      | —      | End of field name            |
+| `keyValue`    | string | Packed field name            |
+
+## Main module
+
+The default export creates a Parser with `emit()` applied (from `stream-json/utils/emit`):
+
+```js
+const make = require('stream-csv-as-json');
+
+const stream = make();
+stream.on('startArray', () => { /* row start */ });
+stream.on('stringValue', val => { /* field value */ });
+stream.on('endArray', () => { /* row end */ });
+```
+
+Named exports: `Parser` (the class), `parser` (alias for `Parser.make`).
+
+## Parser API
+
+`Parser` — a Transform stream (writableObjectMode: false, readableObjectMode: true) that consumes CSV text and produces `{name, value}` tokens.
+
+Constructor / factory:
+- `new Parser(options)` — create instance.
+- `Parser.make(options)` / `Parser.parser(options)` — static factory.
+
+Options:
+
+- `packStrings` (boolean, default: true) — emit `stringValue` tokens with the complete field value.
+- `packValues` (boolean) — alias for `packStrings`.
+- `streamStrings` (boolean, default: true) — emit `startString`/`stringChunk`/`endString` tokens.
+- `streamValues` (boolean) — alias for `streamStrings`.
+- `separator` (string, default: `','`) — field separator character.
+
+If `packStrings` is false, `streamStrings` is forced to true (at least one representation must be emitted).
+
+CSV parsing:
+- Handles quoted fields per RFC 4180: double-quote escaping (`""` → `"`), embedded separators, embedded newlines.
+- Handles both `\r\n` and `\n` line endings.
+- Each row is represented as an array: `startArray`, field tokens, `endArray`.
+- Uses sticky RegExp (`/y` flag) when available for performance.
+
+```js
+const Parser = require('stream-csv-as-json/Parser');
+const fs = require('fs');
+
+const p = new Parser();
+p.on('data', token => console.log(token.name, token.value));
+p.on('end', () => console.log('done'));
+fs.createReadStream('data.csv').pipe(p);
+```
+
+With `stream-chain`:
+
+```js
+const {chain} = require('stream-chain');
+const {parser} = require('stream-csv-as-json');
+
+const pipeline = chain([
+  fs.createReadStream('data.csv'),
+  parser(),
+  token => { console.log(token.name, token.value); return null; }
+]);
+```
+
+## AsObjects API
+
+`AsObjects` — a Transform stream (objectMode both sides) that uses the first CSV row as field names and converts subsequent rows from array tokens to object tokens.
+
+Constructor / factory:
+- `new AsObjects(options)` — create instance.
+- `AsObjects.make(options)` / `AsObjects.asObjects(options)` — static factory.
+- `AsObjects.withParser(options)` — create a pipeline with the CSV parser (uses `stream-json/utils/withParser`).
+
+Options:
+
+- `packKeys` (boolean, default: true) — emit `keyValue` tokens with the field name.
+- `streamKeys` (boolean, default: true) — emit `startKey`/`stringChunk`/`endKey` tokens for field names.
+- `useStringValues` (boolean, default: false) — consume `stringValue` tokens instead of `stringChunk`/`endString` in the header phase.
+- `useValues` (boolean) — alias for `useStringValues`.
+- `fieldPrefix` (string, default: `'field'`) — prefix for unnamed fields when data has more columns than headers. Field name becomes `fieldPrefix + index`.
+
+If `packKeys` is false, `streamKeys` is forced to true.
+
+Behavior:
+1. **Header phase**: Consumes the first row to build a list of field names from `stringChunk`/`endString` (or `stringValue` if `useStringValues` is true).
+2. **Data phase**: Converts subsequent rows:
+   - `startArray` → `startObject`
+   - Before each field value: emits key tokens (`startKey`/`stringChunk`/`endKey` and/or `keyValue`)
+   - `endArray` → `endObject`
+
+```js
+const {chain} = require('stream-chain');
+const {parser} = require('stream-csv-as-json');
+const {asObjects} = require('stream-csv-as-json/AsObjects');
+const {streamValues} = require('stream-json/streamers/StreamValues');
+
+const pipeline = chain([
+  fs.createReadStream('data.csv'),
+  parser(),
+  asObjects(),
+  streamValues(),
+  ({value}) => console.log(value)
+]);
+```
+
+With `withParser` shortcut:
+
+```js
+const {withParser} = require('stream-csv-as-json/AsObjects');
+const {streamValues} = require('stream-json/streamers/StreamValues');
+
+const pipeline = chain([
+  fs.createReadStream('data.csv'),
+  withParser(),
+  streamValues(),
+  ({value}) => console.log(value)
+]);
+```
+
+Custom field prefix:
+
+```js
+// If headers are: name,age and data has 4 columns:
+// Fields become: name, age, field2, field3
+const pipeline = chain([
+  parser(),
+  asObjects({fieldPrefix: 'col'}),
+  // Fields become: name, age, col2, col3
+]);
+```
+
+## Stringer API
+
+`Stringer` — a Transform stream (writableObjectMode: true, readableObjectMode: false) that converts a CSV token stream back to CSV text.
+
+Constructor / factory:
+- `new Stringer(options)` — create instance.
+- `Stringer.make(options)` / `Stringer.stringer(options)` — static factory.
+
+Options:
+
+- `useStringValues` (boolean, default: false) — use `stringValue` tokens instead of `startString`/`stringChunk`/`endString`.
+- `useValues` (boolean) — alias for `useStringValues`.
+- `separator` (string, default: `','`) — field separator character.
+
+Two modes:
+
+1. **Stream mode** (default, `useStringValues: false`): Consumes `startString`/`stringChunk`/`endString` tokens. Always quotes fields (wraps in `"`), escapes `"` as `""`.
+2. **Value mode** (`useStringValues: true`): Consumes `stringValue` tokens. Quotes only when necessary (field contains separator, `"`, `\r`, or `\n`).
+
+Rows are terminated with `\r\n`.
+
+```js
+const {chain} = require('stream-chain');
+const {parser} = require('stream-csv-as-json');
+const Stringer = require('stream-csv-as-json/Stringer');
+
+// Round-trip: parse CSV and write it back
+chain([
+  fs.createReadStream('input.csv'),
+  parser(),
+  Stringer.make(),
+  fs.createWriteStream('output.csv')
+]);
+
+// Value mode: smarter quoting
+chain([
+  parser({packValues: true, streamValues: false}),
+  Stringer.make({useStringValues: true}),
+  fs.createWriteStream('output.csv')
+]);
+```
+
+## Common patterns
+
+### Stream a huge CSV as objects
+
+```js
+const {chain} = require('stream-chain');
+const {parser} = require('stream-csv-as-json');
+const {asObjects} = require('stream-csv-as-json/AsObjects');
+const {streamValues} = require('stream-json/streamers/StreamValues');
+const fs = require('fs');
+
+const pipeline = chain([
+  fs.createReadStream('huge.csv'),
+  parser(),
+  asObjects(),
+  streamValues(),
+  ({value}) => processRow(value)
+]);
+pipeline.on('end', () => console.log('done'));
+```
+
+### Compressed CSV processing
+
+```js
+const zlib = require('zlib');
+
+chain([
+  fs.createReadStream('data.csv.gz'),
+  zlib.createGunzip(),
+  parser(),
+  asObjects(),
+  streamValues(),
+  ({value}) => value.department === 'accounting' ? value : null
+]);
+```
+
+### CSV round-trip (parse and re-emit)
+
+```js
+chain([
+  fs.createReadStream('input.csv'),
+  parser(),
+  Stringer.make(),
+  fs.createWriteStream('output.csv')
+]);
+```
+
+### Filter CSV rows
+
+```js
+chain([
+  fs.createReadStream('data.csv'),
+  parser(),
+  asObjects(),
+  streamValues(),
+  ({value}) => value.active === 'true' ? value : null
+]);
+```
+
+### Custom separator (TSV)
+
+```js
+chain([
+  fs.createReadStream('data.tsv'),
+  parser({separator: '\t'}),
+  asObjects(),
+  streamValues(),
+  ({value}) => console.log(value)
+]);
+```
+
+### Use with stream-json filters
+
+Because the token protocol is compatible with `stream-json`, you can use its filters downstream:
+
+```js
+const {pick} = require('stream-json/filters/Pick');
+const {streamValues} = require('stream-json/streamers/StreamValues');
+
+chain([
+  fs.createReadStream('data.csv'),
+  parser(),
+  asObjects(),
+  pick({filter: /\bname\b/}),
+  streamValues(),
+  ({value}) => console.log(value)
+]);
+```
+
+### Event-based processing
+
+```js
+const make = require('stream-csv-as-json');
+const fs = require('fs');
+
+const stream = make();
+let rowCount = 0;
+stream.on('startArray', () => ++rowCount);
+stream.on('end', () => console.log(`${rowCount} rows`));
+fs.createReadStream('data.csv').pipe(stream);
+```
+
+## Links
+
+- Docs: https://github.com/uhop/stream-csv-as-json/wiki
+- npm: https://www.npmjs.com/package/stream-csv-as-json
+- Repository: https://github.com/uhop/stream-csv-as-json

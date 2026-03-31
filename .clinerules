@@ -1,0 +1,54 @@
+<!-- Canonical source: AGENTS.md — keep this file in sync -->
+# stream-csv-as-json — AI Agent Rules
+
+## Project identity
+
+stream-csv-as-json is a micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. It can parse CSV files far exceeding available memory streaming individual primitives using a SAX-inspired API. The npm package name is `stream-csv-as-json`. It depends on `stream-json` for token infrastructure and `stream-chain` for pipeline composition.
+
+## Critical rules
+
+- **CommonJS.** No `"type"` field in package.json — defaults to commonjs. Use `require()` everywhere.
+- **No transpilation.** Code runs directly.
+- **One runtime dependency: `stream-json`.** Do not add other packages to `dependencies`. Only `devDependencies` are allowed.
+- **Do not modify or delete test expectations** without understanding why they changed.
+- **Do not add comments or remove comments** unless explicitly asked.
+- **Token-based architecture.** The parser produces `{name, value}` tokens compatible with `stream-json`'s token protocol. All components operate on this protocol.
+- **Backpressure must be handled correctly.** All stream components extend Node.js Transform streams.
+
+## Code style
+
+- Prettier: 160 char width, single quotes, no bracket spacing, no trailing commas, arrow parens "avoid" (see `.prettierrc`).
+- 2-space indentation.
+- Semicolons are enforced by Prettier (default `semi: true`).
+
+## Architecture quick reference
+
+- **Parser** (`Parser.js`) consumes CSV text, produces SAX-like token stream. Extends `Transform` (writableObjectMode: false, readableObjectMode: true).
+  - Options: `packStrings`/`packValues`, `streamStrings`/`streamValues`, `separator`.
+- **AsObjects** (`AsObjects.js`) uses the first row as field names, converts subsequent rows from array tokens to object tokens.
+  - Options: `packKeys`, `streamKeys`, `useStringValues`/`useValues`, `fieldPrefix`.
+  - `.withParser(options)` for pipeline creation.
+- **Stringer** (`Stringer.js`) converts CSV token stream back to CSV text. Handles quoting.
+  - Options: `useStringValues`/`useValues`, `separator`.
+- **Main module** (`index.js`) creates a Parser with `emit()` applied (from `stream-json/utils/emit`).
+
+## Verification commands
+
+- `npm test` — run the full test suite
+- `node tests/test_<name>.js` — run a single test file directly
+
+## File layout
+
+- Entry point: `index.js`
+- Parser: `Parser.js` — the core, produces token stream
+- Essentials: `AsObjects.js`, `Stringer.js`
+- Tests: `tests/test_*.js` (heya-unit, CommonJS)
+- Wiki docs: `wiki/` (git submodule)
+
+## When reading the codebase
+
+- Start with `ARCHITECTURE.md` for the module map and dependency graph.
+- `Parser.js` is the core — read it first to understand the CSV token protocol.
+- `AsObjects.js` converts array-of-strings rows into object token streams.
+- `Stringer.js` does the inverse: token stream back to CSV text.
+- Wiki markdown files in `wiki/` contain detailed usage docs.
