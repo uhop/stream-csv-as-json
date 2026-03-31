@@ -3,7 +3,6 @@
 'use strict';
 
 const {asStream: makeStream, flushable, many, none} = require('stream-chain');
-const gen = require('stream-chain/gen.js');
 const withParser = require('./utils/with-parser.js');
 
 const asObjects = options => {

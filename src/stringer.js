@@ -72,7 +72,6 @@ const stringer = options => {
       case 'endArray':
         return '\r\n';
       case 'startString':
-        if (skip) return none;
         let prefix = '';
         if (skipSeparator) {
           skipSeparator = false;
@@ -81,13 +80,8 @@ const stringer = options => {
         }
         return prefix + '"';
       case 'endString':
-        if (skip) {
-          skip = false;
-          return none;
-        }
         return '"';
       case 'stringChunk':
-        if (skip) return none;
         return chunk.value.replace(/"/g, '""');
       case 'stringValue':
         return none;
