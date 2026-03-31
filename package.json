@@ -30,7 +30,7 @@
     "stream-chain": "^2.2.5"
   },
   "dependencies": {
-    "stream-json": "^1.8.0"
+    "stream-json": "^2.1.0"
   },
   "files": [
     "/*.js",
