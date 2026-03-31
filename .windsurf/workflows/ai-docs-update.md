@@ -21,5 +21,13 @@ Update all AI-facing files after changes to the public API, modules, or project 
 7. Update `AGENTS.md` if critical rules, commands, or architecture quick reference changed.
 8. Sync `.windsurfrules`, `.cursorrules`, `.clinerules` if `AGENTS.md` changed:
    - These three files should be identical copies of the condensed rules.
-9. Update `wiki/Home.md` if the overview needs to reflect new features.
+9. Update wiki pages if the public API changed:
+   - `wiki/Home.md` is the main hub — update the overview, component table, and examples.
+   - Module pages use the source file name in lowercase: `parser.js` → `parser.md`, `as-objects.js` → `as-objects.md`.
+   - Subdirectory modules prefix folder names with hyphens: `utils/with-parser.js` → `utils-with-parser.md`.
+   - Default/index modules that aren't imported by name get a descriptive name: `index.js` → `Main-module.md`.
+   - Non-module docs (guides, overviews) keep original casing: `Home.md`, `Performance.md`.
+   - Standalone functions/objects use their name with parens: e.g., `fn().md`.
+   - Always document all relevant module exports (factory, `.asStream()`, `.withParser()`, self-references, etc.).
+   - Goals: brevity, clarity, simplicity. At least one import + usage example per page.
 10. Track progress with the todo list and provide a summary when done.

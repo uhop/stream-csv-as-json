@@ -1,6 +1,6 @@
 ---
 name: write-tests
-description: Write or update heya-unit tests for a module or feature. Use when asked to write tests, add test coverage, or create new test files for stream-csv-as-json.
+description: Write or update tape-six tests for a module or feature. Use when asked to write tests, add test coverage, or create new test files for stream-csv-as-json.
 ---
 
 # Write Tests for stream-csv-as-json
