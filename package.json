@@ -1,10 +1,28 @@
 {
   "name": "stream-csv-as-json",
-  "version": "1.0.5",
-  "description": "Streams CSV files.",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "stream-csv-as-json is a micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. It can parse CSV files far exceeding available memory streaming individual primitives using a SAX-inspired API.",
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*"
+  },
   "scripts": {
-    "test": "node tests/tests.js"
+    "test": "tape6 --flags FO",
+    "test:bun": "tape6-bun --flags FO",
+    "test:deno": "tape6-deno --flags FO",
+    "test:proc": "tape6-proc --flags FO",
+    "test:proc:bun": "bun run `tape6-proc --self` --flags FO",
+    "test:proc:deno": "deno run -A `tape6-proc --self` --flags FO -r -A",
+    "test:seq": "tape6-seq --flags FO",
+    "test:seq:bun": "bun run `tape6-seq --self` --flags FO",
+    "test:seq:deno": "deno run -A `tape6-seq --self` --flags FO",
+    "ts-check": "tsc --noEmit",
+    "ts-test": "tape6 --flags FO 'tests/test-*.*ts'",
+    "lint": "prettier --check .",
+    "lint:fix": "prettier --write ."
   },
   "repository": {
     "type": "git",
@@ -19,21 +37,36 @@
     "stream",
     "streaming"
   ],
-  "author": "Eugene Lazutkin <eugene.lazutkin@gmail.com> (http://lazutkin.com/)",
+  "author": "Eugene Lazutkin <eugene.lazutkin@gmail.com> (https://www.lazutkin.com/)",
+  "funding": "https://github.com/sponsors/uhop",
   "license": "BSD-3-Clause",
   "bugs": {
     "url": "https://github.com/uhop/stream-csv-as-json/issues"
   },
   "homepage": "https://github.com/uhop/stream-csv-as-json#readme",
-  "devDependencies": {
-    "heya-unit": "^0.3.0",
-    "stream-chain": "^2.2.5"
+  "files": [
+    "src",
+    "LICENSE",
+    "README.md",
+    "llms.txt",
+    "llms-full.txt"
+  ],
+  "directories": {
+    "test": "tests"
   },
   "dependencies": {
-    "stream-json": "^1.8.0"
+    "stream-json": "^2.1.0"
   },
-  "files": [
-    "/*.js",
-    "/utils"
-  ]
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "prettier": "^3.8.1",
+    "tape-six": "^1.7.13",
+    "tape-six-proc": "^1.2.8",
+    "typescript": "^6.0.2"
+  },
+  "tape6": {
+    "tests": [
+      "/tests/test-*.*js"
+    ]
+  }
 }

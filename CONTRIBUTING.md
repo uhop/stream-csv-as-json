@@ -18,10 +18,12 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the module map and dependency graph
 
 1. Make your changes.
 2. Test: `npm test`
+3. Type-check: `npm run ts-check`
+4. Lint: `npm run lint`
 
 ## Code style
 
-- CommonJS (`require()`/`module.exports`) throughout.
+- CommonJS source in `src/` (`require()`/`module.exports`). Tests use ESM (`.mjs`), CJS (`.cjs`), and TS (`.mts`).
 - Formatted with Prettier — see `.prettierrc` for settings.
 - One runtime dependency: `stream-json`. Do not add others.
 

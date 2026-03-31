@@ -8,7 +8,7 @@ Update all AI-facing files after changes to the public API, modules, or project 
 
 ## Steps
 
-1. Read `index.js`, `Parser.js`, `AsObjects.js`, `Stringer.js` to identify the current public API.
+1. Read `src/index.js`, `src/parser.js`, `src/as-objects.js`, `src/stringer.js`, `src/utils/with-parser.js` to identify the current public API.
 2. Read `AGENTS.md` and `ARCHITECTURE.md` for current state.
 3. Identify what changed (new components, renamed exports, new options, removed features, etc.).
 4. Update `llms.txt`:

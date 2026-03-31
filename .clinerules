@@ -7,48 +7,49 @@ stream-csv-as-json is a micro-library of Node.js stream components for creating 
 
 ## Critical rules
 
-- **CommonJS.** No `"type"` field in package.json — defaults to commonjs. Use `require()` everywhere.
+- **CommonJS.** `"type": "commonjs"` in package.json. Source uses `require()`. Tests use ESM/CJS/TS.
 - **No transpilation.** Code runs directly.
 - **One runtime dependency: `stream-json`.** Do not add other packages to `dependencies`. Only `devDependencies` are allowed.
 - **Do not modify or delete test expectations** without understanding why they changed.
 - **Do not add comments or remove comments** unless explicitly asked.
 - **Token-based architecture.** The parser produces `{name, value}` tokens compatible with `stream-json`'s token protocol. All components operate on this protocol.
-- **Backpressure must be handled correctly.** All stream components extend Node.js Transform streams.
+- **Backpressure is handled by `stream-chain`.** Components are flushable functions composed via `gen()` and wrapped with `asStream()`.
 
 ## Code style
 
 - Prettier: 160 char width, single quotes, no bracket spacing, no trailing commas, arrow parens "avoid" (see `.prettierrc`).
 - 2-space indentation.
 - Semicolons are enforced by Prettier (default `semi: true`).
+- Each `.js` file has a `// @ts-self-types` header pointing to its `.d.ts`.
 
 ## Architecture quick reference
 
-- **Parser** (`Parser.js`) consumes CSV text, produces SAX-like token stream. Extends `Transform` (writableObjectMode: false, readableObjectMode: true).
+- **Parser** (`src/parser.js`) consumes CSV text, produces SAX-like token stream. Factory: `parser(options)` / `parser.asStream(options)`.
   - Options: `packStrings`/`packValues`, `streamStrings`/`streamValues`, `separator`.
-- **AsObjects** (`AsObjects.js`) uses the first row as field names, converts subsequent rows from array tokens to object tokens.
+- **AsObjects** (`src/as-objects.js`) uses the first row as field names, converts subsequent rows from array tokens to object tokens.
   - Options: `packKeys`, `streamKeys`, `useStringValues`/`useValues`, `fieldPrefix`.
-  - `.withParser(options)` for pipeline creation.
-- **Stringer** (`Stringer.js`) converts CSV token stream back to CSV text. Handles quoting.
+  - `.withParser(options)` / `.withParserAsStream(options)` for pipeline creation.
+- **Stringer** (`src/stringer.js`) converts CSV token stream back to CSV text. Handles quoting.
   - Options: `useStringValues`/`useValues`, `separator`.
-- **Main module** (`index.js`) creates a Parser with `emit()` applied (from `stream-json/utils/emit`).
+- **Main module** (`src/index.js`) creates a Parser Duplex with `emit()` applied (from `stream-json/utils/emit`).
+- **with-parser** (`src/utils/with-parser.js`) CSV-specific withParser utility.
 
 ## Verification commands
 
-- `npm test` — run the full test suite
-- `node tests/test_<name>.js` — run a single test file directly
+- `npm test` — run the full test suite (tape-six)
+- `npm run ts-check` — TypeScript type checking
+- `npm run lint` / `npm run lint:fix` — Prettier
 
 ## File layout
 
-- Entry point: `index.js`
-- Parser: `Parser.js` — the core, produces token stream
-- Essentials: `AsObjects.js`, `Stringer.js`
-- Tests: `tests/test_*.js` (heya-unit, CommonJS)
+- Source: `src/` — `index.js`, `parser.js`, `as-objects.js`, `stringer.js`, `utils/with-parser.js` (each with `.d.ts`)
+- Tests: `tests/test-*.mjs` (ESM), `test-*.cjs` (CJS), `test-*.mts` (TS) — tape-six
 - Wiki docs: `wiki/` (git submodule)
 
 ## When reading the codebase
 
 - Start with `ARCHITECTURE.md` for the module map and dependency graph.
-- `Parser.js` is the core — read it first to understand the CSV token protocol.
-- `AsObjects.js` converts array-of-strings rows into object token streams.
-- `Stringer.js` does the inverse: token stream back to CSV text.
+- `src/parser.js` is the core — read it first to understand the CSV token protocol.
+- `src/as-objects.js` converts array-of-strings rows into object token streams.
+- `src/stringer.js` does the inverse: token stream back to CSV text.
 - Wiki markdown files in `wiki/` contain detailed usage docs.
