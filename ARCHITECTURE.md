@@ -59,7 +59,7 @@ All downstream components (AsObjects, Stringer, and `stream-json` filters/stream
 7. Handles both `\r\n` and `\n` line endings.
 8. Returns `many(tokens)` or `none` from `stream-chain` for proper backpressure handling.
 
-### AsObjects
+### asObjects
 
 `asObjects(options)` returns a flushable function. It transforms the token stream in two phases:
 
@@ -82,7 +82,7 @@ Methods:
 - `asObjects.withParser(options)` — create a pipeline with the CSV parser.
 - `asObjects.withParserAsStream(options)` — same, wrapped as a Duplex.
 
-### Stringer
+### stringer
 
 `stringer(options)` returns a flushable function. Converts a CSV token stream back into CSV text.
 
@@ -100,7 +100,7 @@ Rows are terminated with `\r\n`.
 
 ### Main module
 
-`src/index.js` creates a Parser stream with `emit()` applied (from `stream-json/utils/emit`), so the returned stream emits named events for each token type.
+`src/index.js` creates a parser stream with `emit()` applied (from `stream-json/utils/emit`), so the returned stream emits named events for each token type.
 
 ### with-parser
 

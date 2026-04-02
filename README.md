@@ -9,11 +9,11 @@
 
 ## Components
 
-- **[Parser](https://github.com/uhop/stream-csv-as-json/wiki/Parser)** — streaming CSV parser producing a SAX-like token stream.
+- **[parser](https://github.com/uhop/stream-csv-as-json/wiki/parser)** — streaming CSV parser producing a SAX-like token stream.
   - Optionally packs values into single tokens or streams them piece-wise.
   - The [main module](https://github.com/uhop/stream-csv-as-json/wiki/Main-module) provides a convenience factory with event emission.
-- **[AsObjects](https://github.com/uhop/stream-csv-as-json/wiki/AsObjects)** — uses the first row as field names, converts subsequent rows to object tokens.
-- **[Stringer](https://github.com/uhop/stream-csv-as-json/wiki/Stringer)** — converts a CSV token stream back to CSV text.
+- **[asObjects](https://github.com/uhop/stream-csv-as-json/wiki/as-objects)** — uses the first row as field names, converts subsequent rows to object tokens.
+- **[stringer](https://github.com/uhop/stream-csv-as-json/wiki/stringer)** — converts a CSV token stream back to CSV text.
 
 All components are building blocks for flexible pipelines. They can be combined with custom functions, [stream-chain](https://www.npmjs.com/package/stream-chain), and [stream-json](https://www.npmjs.com/package/stream-json) utilities.
 
@@ -107,7 +107,7 @@ See the full documentation in the [Wiki](https://github.com/uhop/stream-csv-as-j
 | `stream-csv-as-json/stringer.js`   | `stringer(options)`  | `stringer.asStream(options)`                |
 | `stream-csv-as-json/as-objects.js` | `asObjects(options)` | `asObjects.asStream(options)`               |
 
-### Parser options
+### parser options
 
 | Option                           | Default | Description                                         |
 | -------------------------------- | ------- | --------------------------------------------------- |
@@ -115,14 +115,14 @@ See the full documentation in the [Wiki](https://github.com/uhop/stream-csv-as-j
 | `streamStrings` / `streamValues` | `true`  | Emit `startString`/`stringChunk`/`endString` tokens |
 | `separator`                      | `','`   | Field separator character                           |
 
-### Stringer options
+### stringer options
 
 | Option                          | Default | Description                                                |
 | ------------------------------- | ------- | ---------------------------------------------------------- |
 | `useStringValues` / `useValues` | `false` | Use packed `stringValue` tokens instead of streamed chunks |
 | `separator`                     | `','`   | Field separator character                                  |
 
-### AsObjects options
+### asObjects options
 
 | Option                          | Default   | Description                                           |
 | ------------------------------- | --------- | ----------------------------------------------------- |
@@ -141,7 +141,7 @@ BSD-3-Clause
 
 ## Release history
 
-- 2.0.0 _Major rewrite: functional API (stream-chain 3.x), source in `src/`, TypeScript declarations, tape-six tests. See [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration)._
+- 2.0.0 _Major rewrite: functional API (stream-chain 3.x), source in `src/`, TypeScript declarations, tape-six tests. See [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-1.x-to-2.x)._
 - 1.0.5 _technical release: updated deps._
 - 1.0.4 _technical release: updated deps._
 - 1.0.3 _technical release: updated deps._

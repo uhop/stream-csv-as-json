@@ -5,8 +5,8 @@
 - Streaming SAX-inspired CSV parser producing `{name, value}` tokens
 - Parse CSV files far exceeding available memory
 - Individual field values can be streamed piece-wise
-- AsObjects converts header + data rows into object token streams
-- Stringer converts token streams back to CSV text
+- asObjects converts header + data rows into object token streams
+- stringer converts token streams back to CSV text
 - Token protocol compatible with `stream-json` — use its filters, streamers, and utilities downstream
 - Proper backpressure handling via `stream-chain` (flushable functions, `gen()`, `asStream()`)
 - Components are factory functions returning flushable closures
@@ -48,10 +48,10 @@ import {parser} from 'stream-csv-as-json';
 // Parser
 import parser from 'stream-csv-as-json/parser.js';
 
-// AsObjects
+// asObjects
 import asObjects from 'stream-csv-as-json/as-objects.js';
 
-// Stringer
+// stringer
 import stringer from 'stream-csv-as-json/stringer.js';
 
 // with-parser utility

@@ -25,7 +25,7 @@ pipeline.on('data', token => console.log(token));
 
 ## API
 
-### Parser
+### parser
 
 `parser(options)` — factory returning a flushable function that produces `{name, value}` tokens.
 
@@ -41,7 +41,7 @@ fs.createReadStream('data.csv')
 
 ### Main module
 
-The default export creates a Parser Duplex stream with `emit()` applied:
+The default export creates a parser Duplex stream with `emit()` applied:
 
 ```js
 import make from 'stream-csv-as-json';
@@ -50,7 +50,7 @@ stream.on('startArray', () => { /* row start */ });
 stream.on('stringValue', val => { /* field value */ });
 ```
 
-### AsObjects
+### asObjects
 
 `asObjects(options)` — factory returning a flushable function that converts array tokens to object tokens using the first row as field names.
 
@@ -65,7 +65,7 @@ import asObjects from 'stream-csv-as-json/as-objects.js';
 chain([parser(), asObjects(), token => console.log(token)]);
 ```
 
-### Stringer
+### stringer
 
 `stringer(options)` — factory returning a flushable function converting CSV token stream back to CSV text.
 
