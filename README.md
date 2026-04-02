@@ -141,6 +141,7 @@ BSD-3-Clause
 
 ## Release history
 
+- 2.0.1 _Added direct dependency on `stream-chain`. Documentation updates._
 - 2.0.0 _Major rewrite: functional API (stream-chain 3.x), source in `src/`, TypeScript declarations, tape-six tests. See [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-1.x-to-2.x)._
 - 1.0.5 _technical release: updated deps._
 - 1.0.4 _technical release: updated deps._

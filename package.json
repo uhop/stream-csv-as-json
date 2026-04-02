@@ -1,6 +1,6 @@
 {
   "name": "stream-csv-as-json",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "stream-csv-as-json is a micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. It can parse CSV files far exceeding available memory streaming individual primitives using a SAX-inspired API.",
   "type": "commonjs",
   "main": "./src/index.js",
