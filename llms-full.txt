@@ -23,10 +23,10 @@ npm i stream-csv-as-json
 Stream a huge CSV file as token objects:
 
 ```js
-const chain = require('stream-chain');
-const {parser} = require('stream-csv-as-json');
-const asObjects = require('stream-csv-as-json/as-objects.js');
-const fs = require('node:fs');
+import fs from 'node:fs';
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
+import asObjects from 'stream-csv-as-json/as-objects.js';
 
 const pipeline = chain([
   fs.createReadStream('data.csv'),
@@ -42,20 +42,20 @@ pipeline.on('end', () => console.log('done'));
 
 ```js
 // Main API (parser + emit)
-const make = require('stream-csv-as-json');
-const {parser} = require('stream-csv-as-json');
+import make from 'stream-csv-as-json';
+import {parser} from 'stream-csv-as-json';
 
 // Parser
-const parser = require('stream-csv-as-json/parser.js');
+import parser from 'stream-csv-as-json/parser.js';
 
 // AsObjects
-const asObjects = require('stream-csv-as-json/as-objects.js');
+import asObjects from 'stream-csv-as-json/as-objects.js';
 
 // Stringer
-const stringer = require('stream-csv-as-json/stringer.js');
+import stringer from 'stream-csv-as-json/stringer.js';
 
 // with-parser utility
-const withParser = require('stream-csv-as-json/utils/with-parser.js');
+import withParser from 'stream-csv-as-json/utils/with-parser.js';
 ```
 
 ## Token protocol
@@ -88,7 +88,7 @@ After `asObjects`, additional tokens appear:
 The default export creates a Parser Duplex stream with `emit()` applied (from `stream-json/utils/emit`):
 
 ```js
-const make = require('stream-csv-as-json');
+import make from 'stream-csv-as-json';
 
 const stream = make();
 stream.on('startArray', () => { /* row start */ });
@@ -123,8 +123,8 @@ CSV parsing:
 - Uses sticky RegExp (`/y` flag) for performance.
 
 ```js
-const parser = require('stream-csv-as-json/parser.js');
-const fs = require('node:fs');
+import parser from 'stream-csv-as-json/parser.js';
+import fs from 'node:fs';
 
 fs.createReadStream('data.csv')
   .pipe(parser.asStream())
@@ -135,8 +135,9 @@ fs.createReadStream('data.csv')
 With `stream-chain`:
 
 ```js
-const chain = require('stream-chain');
-const {parser} = require('stream-csv-as-json');
+import fs from 'node:fs';
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
 
 const pipeline = chain([
   fs.createReadStream('data.csv'),
@@ -175,9 +176,10 @@ Behavior:
    - `endArray` → `endObject`
 
 ```js
-const chain = require('stream-chain');
-const {parser} = require('stream-csv-as-json');
-const asObjects = require('stream-csv-as-json/as-objects.js');
+import fs from 'node:fs';
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
+import asObjects from 'stream-csv-as-json/as-objects.js';
 
 const pipeline = chain([
   fs.createReadStream('data.csv'),
@@ -191,7 +193,8 @@ pipeline.on('data', token => console.log(token));
 With `withParser` shortcut:
 
 ```js
-const asObjects = require('stream-csv-as-json/as-objects.js');
+import fs from 'node:fs';
+import asObjects from 'stream-csv-as-json/as-objects.js';
 
 const pipeline = chain([
   fs.createReadStream('data.csv'),
@@ -204,6 +207,10 @@ pipeline.on('data', token => console.log(token));
 Custom field prefix:
 
 ```js
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
+import asObjects from 'stream-csv-as-json/as-objects.js';
+
 // If headers are: name,age and data has 4 columns:
 // Fields become: name, age, field2, field3
 const pipeline = chain([
@@ -235,9 +242,10 @@ Two modes:
 Rows are terminated with `\r\n`.
 
 ```js
-const chain = require('stream-chain');
-const {parser} = require('stream-csv-as-json');
-const stringer = require('stream-csv-as-json/stringer.js');
+import fs from 'node:fs';
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
+import stringer from 'stream-csv-as-json/stringer.js';
 
 // Round-trip: parse CSV and write it back
 chain([
@@ -260,10 +268,10 @@ chain([
 ### Stream a huge CSV as token objects
 
 ```js
-const chain = require('stream-chain');
-const {parser} = require('stream-csv-as-json');
-const asObjects = require('stream-csv-as-json/as-objects.js');
-const fs = require('node:fs');
+import fs from 'node:fs';
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
+import asObjects from 'stream-csv-as-json/as-objects.js';
 
 const pipeline = chain([
   fs.createReadStream('huge.csv'),
@@ -279,7 +287,11 @@ pipeline.on('end', () => console.log('done'));
 ### Compressed CSV processing
 
 ```js
-const zlib = require('node:zlib');
+import fs from 'node:fs';
+import zlib from 'node:zlib';
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
+import asObjects from 'stream-csv-as-json/as-objects.js';
 
 chain([
   fs.createReadStream('data.csv.gz'),
@@ -292,6 +304,11 @@ chain([
 ### CSV round-trip (parse and re-emit)
 
 ```js
+import fs from 'node:fs';
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
+import stringer from 'stream-csv-as-json/stringer.js';
+
 chain([
   fs.createReadStream('input.csv'),
   parser(),
@@ -303,6 +320,11 @@ chain([
 ### Custom separator (TSV)
 
 ```js
+import fs from 'node:fs';
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
+import asObjects from 'stream-csv-as-json/as-objects.js';
+
 chain([
   fs.createReadStream('data.tsv'),
   parser({separator: '\t'}),
@@ -313,8 +335,8 @@ chain([
 ### Event-based processing
 
 ```js
-const make = require('stream-csv-as-json');
-const fs = require('node:fs');
+import fs from 'node:fs';
+import make from 'stream-csv-as-json';
 
 const stream = make();
 let rowCount = 0;
