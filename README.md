@@ -5,7 +5,7 @@
 
 `stream-csv-as-json` is a micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. It can parse CSV files far exceeding available memory, streaming individual primitives using a SAX-inspired API.
 
-`stream-csv-as-json` is a companion project for [stream-json](https://www.npmjs.com/package/stream-json) and [stream-chain](https://www.npmjs.com/package/stream-chain). It uses the same token protocol and works with stream-json filters, streamers, and general infrastructure.
+`stream-csv-as-json` is a companion project for [stream-json](https://www.npmjs.com/package/stream-json) and [stream-chain](https://www.npmjs.com/package/stream-chain). It uses the **same token protocol** (`{name, value}` tokens) and works seamlessly with `stream-json` filters, streamers, and general infrastructure. This means you can combine CSV parsing with `stream-json` utilities like `streamValues`, `Filter`, `Pick`, and `Ignore` for powerful data processing pipelines.
 
 ## Components
 
