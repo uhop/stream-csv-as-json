@@ -25,13 +25,14 @@ npm install stream-csv-as-json
 
 ## Quick start
 
-```js
-const chain = require('stream-chain');
-const fs = require('node:fs');
-const zlib = require('node:zlib');
+Examples use ESM (`import`). CommonJS (`require`) is also supported — see [Modules](#modules) below.
 
-const {parser} = require('stream-csv-as-json');
-const asObjects = require('stream-csv-as-json/as-objects.js');
+```js
+import fs from 'node:fs';
+import zlib from 'node:zlib';
+import chain from 'stream-chain';
+import {parser} from 'stream-csv-as-json';
+import asObjects from 'stream-csv-as-json/as-objects.js';
 
 const pipeline = chain([
   fs.createReadStream('sample.csv.gz'),
@@ -55,8 +56,9 @@ pipeline.on('end', () => console.log(`Found ${counter} matching rows.`));
 ### Using `.withParser()` for a combined pipeline
 
 ```js
-const chain = require('stream-chain');
-const asObjects = require('stream-csv-as-json/as-objects.js');
+import fs from 'node:fs';
+import chain from 'stream-chain';
+import asObjects from 'stream-csv-as-json/as-objects.js';
 
 const pipeline = chain([fs.createReadStream('data.csv'), asObjects.withParser()]);
 
@@ -66,11 +68,32 @@ pipeline.on('data', token => console.log(token));
 ### Using `.asStream()` for direct piping
 
 ```js
-const parser = require('stream-csv-as-json/parser.js');
+import fs from 'node:fs';
+import parser from 'stream-csv-as-json/parser.js';
 
 fs.createReadStream('data.csv')
   .pipe(parser.asStream())
   .on('data', token => console.log(token));
+```
+
+## Modules
+
+This package supports both ESM (`import`) and CommonJS (`require`).
+
+**ESM (recommended):**
+
+```js
+import {parser} from 'stream-csv-as-json';
+import asObjects from 'stream-csv-as-json/as-objects.js';
+import stringer from 'stream-csv-as-json/stringer.js';
+```
+
+**CommonJS:**
+
+```js
+const {parser} = require('stream-csv-as-json');
+const asObjects = require('stream-csv-as-json/as-objects.js');
+const stringer = require('stream-csv-as-json/stringer.js');
 ```
 
 See the full documentation in the [Wiki](https://github.com/uhop/stream-csv-as-json/wiki).
