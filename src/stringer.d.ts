@@ -25,7 +25,11 @@ declare namespace stringer {
     separator?: string;
   }
 
-  /** Creates a Stringer as a Duplex stream. */
+  /** Creates a Stringer as a Duplex stream.
+   *
+   * @param options - Stringer configuration.
+   * @returns A Duplex stream (writable: object mode, readable: text mode).
+   */
   export function asStream(options?: StringerOptions): Duplex;
   /** Self-reference for destructuring: `const {stringer} = require('stream-csv-as-json/stringer.js')`. */
   export {stringer};

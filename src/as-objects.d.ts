@@ -1,9 +1,8 @@
 /// <reference types="node" />
 
 import {Duplex, DuplexOptions} from 'node:stream';
-import {Flushable, Many, none} from 'stream-chain/defs.js';
-import {ParserOptions} from './parser';
-import parser from './parser';
+import {Flushable, Many, none, FunctionList} from 'stream-chain/defs.js';
+import parser, {ParserOptions} from './parser';
 
 export = asObjects;
 
@@ -35,12 +34,31 @@ declare namespace asObjects {
     fieldPrefix?: string;
   }
 
-  /** Creates an AsObjects function as a Duplex stream. */
+  /**
+   * Creates an AsObjects function as a Duplex stream.
+   *
+   * Writable side accepts object mode (arrays of strings), readable side emits object mode (objects).
+   *
+   * @param options - AsObjects configuration.
+   * @returns A Duplex stream (writable: object mode, readable: object mode).
+   */
   export function asStream(options?: AsObjectsOptions): Duplex;
   /** Self-reference for destructuring. */
   export {asObjects};
-  /** Creates a pipeline of CSV parser + asObjects. */
-  export function withParser(options?: AsObjectsOptions & ParserOptions): any;
-  /** Creates a pipeline of CSV parser + asObjects wrapped as a Duplex stream. */
+  /**
+   * Creates a pipeline of CSV parser + asObjects.
+   *
+   * @param options - Combined parser and asObjects options.
+   * @returns A function list representing the composed pipeline.
+   */
+  export function withParser(
+    options?: AsObjectsOptions & ParserOptions
+  ): FunctionList<Flushable<parser.Token, Many<parser.Token> | typeof none>, string, Many<parser.Token> | typeof none>;
+  /**
+   * Creates a pipeline of CSV parser + asObjects wrapped as a Duplex stream.
+   *
+   * @param options - Combined parser and asObjects options.
+   * @returns A Duplex stream (writable: text, readable: object mode).
+   */
   export function withParserAsStream(options?: AsObjectsOptions & ParserOptions & DuplexOptions): Duplex;
 }

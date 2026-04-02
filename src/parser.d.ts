@@ -43,6 +43,9 @@ declare namespace parser {
    * Creates a parser wrapped as a Duplex stream.
    *
    * Writable side accepts text (Buffer/string), readable side emits token objects.
+   *
+   * @param options - Parser configuration.
+   * @returns A Duplex stream (writable: text mode, readable: object mode).
    */
   export function asStream(options?: ParserOptions): Duplex;
   /** Self-reference for destructuring: `const {parser} = require('stream-csv-as-json/parser.js')`. */
