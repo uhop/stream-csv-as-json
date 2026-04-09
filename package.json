@@ -59,7 +59,7 @@
     "stream-json": "^2.1.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "prettier": "^3.8.1",
     "tape-six": "^1.7.13",
     "tape-six-proc": "^1.2.8",
