@@ -118,9 +118,16 @@ If `packStrings` is false, `streamStrings` is forced to true (at least one repre
 
 CSV parsing:
 - Handles quoted fields per RFC 4180: double-quote escaping (`""` → `"`), embedded separators, embedded newlines.
-- Handles both `\r\n` and `\n` line endings.
+- Row terminator acceptance is lenient — CRLF (RFC 4180), LF, and bare CR all work.
+- A leading UTF-8 BOM (`U+FEFF`) at the start of the input is stripped.
 - Each row is represented as an array: `startArray`, field tokens, `endArray`.
-- Uses sticky RegExp (`/y` flag) for performance.
+- Uses sticky RegExp (`/y` flag) for performance; each parser instance owns its own pattern set.
+
+Errors:
+- `"Parser cannot parse input: expected a quoted value"` — input ends mid-quote (unterminated quoted field).
+- `"Parser cannot parse input: unexpected character after a quoted value"` — content other than the separator, CR, LF, or another `"` appears immediately after a closing `"`.
+
+Errors propagate as the stream's `'error'` event.
 
 ```js
 import parser from 'stream-csv-as-json/parser.js';
@@ -162,14 +169,13 @@ Options:
 - `packValues` (boolean) — alias for `packKeys`.
 - `streamKeys` (boolean, default: true) — emit `startKey`/`stringChunk`/`endKey` tokens for field names.
 - `streamValues` (boolean) — alias for `streamKeys`.
-- `useStringValues` (boolean, default: false) — consume `stringValue` tokens instead of `stringChunk`/`endString` in the header phase.
-- `useValues` (boolean) — alias for `useStringValues`.
-- `fieldPrefix` (string, default: `'field'`) — prefix for unnamed fields when data has more columns than headers. Field name becomes `fieldPrefix + index`.
+- `fieldPrefix` (string, default: `'field'`) — prefix for unnamed fields when data has more columns than headers, or when a header cell is empty. Field name becomes `fieldPrefix + index`.
+- `useStringValues` / `useValues` — deprecated no-ops kept for backward compatibility (see Header auto-detection below).
 
 If `packKeys` is false, `streamKeys` is forced to true.
 
 Behavior:
-1. **Header phase**: Consumes the first row to build a list of field names from `stringChunk`/`endString` (or `stringValue` if `useStringValues` is true).
+1. **Header phase**: Consumes the first row to build the field-name list. Auto-detects the parser's mode — captures from `startString` / `stringChunk` / `endString` when stream tokens are emitted, or from `stringValue` when only packed values are emitted. Works with every parser configuration without an explicit option.
 2. **Data phase**: Converts subsequent rows:
    - `startArray` → `startObject`
    - Before each field value: emits key tokens (`startKey`/`stringChunk`/`endKey` and/or `keyValue`)
@@ -233,13 +239,14 @@ Options:
 - `useStringValues` (boolean, default: false) — use `stringValue` tokens instead of `startString`/`stringChunk`/`endString`.
 - `useValues` (boolean) — alias for `useStringValues`.
 - `separator` (string, default: `','`) — field separator character.
+- `rowTerminator` (string, default: `'\r\n'`) — row terminator string. CRLF per RFC 4180; override with `'\n'` for Unix-style output.
 
 Two modes:
 
 1. **Stream mode** (default, `useStringValues: false`): Consumes `startString`/`stringChunk`/`endString` tokens. Always quotes fields (wraps in `"`), escapes `"` as `""`.
 2. **Value mode** (`useStringValues: true`): Consumes `stringValue` tokens. Quotes only when necessary (field contains separator, `"`, `\r`, or `\n`).
 
-Rows are terminated with `\r\n`.
+Rows are terminated with the configured `rowTerminator` (default `\r\n` per RFC 4180).
 
 ```js
 import fs from 'node:fs';

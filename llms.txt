@@ -27,7 +27,7 @@ pipeline.on('data', token => console.log(token));
 
 ### parser
 
-`parser(options)` — factory returning a flushable function that produces `{name, value}` tokens.
+`parser(options)` — factory returning a flushable function that produces `{name, value}` tokens. Accepts CRLF, LF, and bare CR row terminators; strips a leading UTF-8 BOM; throws on malformed quoted values.
 
 - `parser.asStream(options)` — returns a Duplex stream.
 - Options: `packStrings`/`packValues` (default: true), `streamStrings`/`streamValues` (default: true), `separator` (default: `','`).
@@ -52,12 +52,13 @@ stream.on('stringValue', val => { /* field value */ });
 
 ### asObjects
 
-`asObjects(options)` — factory returning a flushable function that converts array tokens to object tokens using the first row as field names.
+`asObjects(options)` — factory returning a flushable function that converts array tokens to object tokens using the first row as field names. The header collector auto-detects the upstream parser's mode (stream tokens vs packed `stringValue`), so it works with any parser configuration.
 
 - `asObjects.asStream(options)` — returns a Duplex stream.
 - `asObjects.withParser(options)` — creates a pipeline with the CSV parser.
 - `asObjects.withParserAsStream(options)` — same, wrapped as a Duplex.
-- Options: `packKeys` (default: true), `streamKeys` (default: true), `useStringValues`/`useValues` (default: false), `fieldPrefix` (default: `'field'`).
+- Options: `packKeys` (default: true), `streamKeys` (default: true), `fieldPrefix` (default: `'field'`).
+- `useStringValues` / `useValues` — deprecated no-ops kept for backward compatibility.
 
 ```js
 import asObjects from 'stream-csv-as-json/as-objects.js';
@@ -70,7 +71,7 @@ chain([parser(), asObjects(), token => console.log(token)]);
 `stringer(options)` — factory returning a flushable function converting CSV token stream back to CSV text.
 
 - `stringer.asStream(options)` — returns a Duplex stream.
-- Options: `useStringValues`/`useValues` (default: false), `separator` (default: `','`).
+- Options: `useStringValues`/`useValues` (default: false), `separator` (default: `','`), `rowTerminator` (default: `'\r\n'` per RFC 4180; override with `'\n'` for Unix-style output).
 
 ```js
 import stringer from 'stream-csv-as-json/stringer.js';

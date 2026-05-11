@@ -143,6 +143,7 @@ BSD-3-Clause
 
 ## Release history
 
+- 2.1.0 _Configurable `rowTerminator` on `stringer`. `asObjects` header now auto-detects parser mode. Minor bugfixes._
 - 2.0.1 _Added direct dependency on `stream-chain`. Documentation updates._
 - 2.0.0 _Major rewrite: functional API (stream-chain 3.x), source in `src/`, TypeScript declarations, tape-six tests. See [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-1.x-to-2.x)._
 - 1.0.5 _technical release: updated deps._
@@ -151,3 +152,5 @@ BSD-3-Clause
 - 1.0.2 _technical release: updated deps, updated license's year._
 - 1.0.1 _minor readme tweaks, added TypeScript typings and the badge._
 - 1.0.0 _the first 1.0 release._
+
+The full release notes are in the wiki: [Release notes](https://github.com/uhop/stream-csv-as-json/wiki/Release-notes).
