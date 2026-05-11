@@ -13,14 +13,17 @@
     "test": "tape6 --flags FO",
     "test:bun": "tape6-bun --flags FO",
     "test:deno": "tape6-deno --flags FO",
-    "test:proc": "tape6-proc --flags FO",
-    "test:proc:bun": "bun run `tape6-proc --self` --flags FO",
-    "test:proc:deno": "deno run -A `tape6-proc --self` --flags FO -r -A",
     "test:seq": "tape6-seq --flags FO",
     "test:seq:bun": "bun run `tape6-seq --self` --flags FO",
     "test:seq:deno": "deno run -A `tape6-seq --self` --flags FO",
+    "test:proc": "tape6-proc --flags FO",
+    "test:proc:bun": "bun run `tape6-proc --self` --flags FO",
+    "test:proc:deno": "deno run -A `tape6-proc --self` -r -A --flags FO",
     "ts-check": "tsc --noEmit",
+    "js-check": "tsc --project tsconfig.check.json",
     "ts-test": "tape6 --flags FO 'tests/test-*.*ts'",
+    "ts-test:bun": "tape6-bun --flags FO 'tests/test-*.*ts'",
+    "ts-test:deno": "tape6-deno --flags FO 'tests/test-*.*ts'",
     "lint": "prettier --check .",
     "lint:fix": "prettier --write ."
   },
@@ -55,15 +58,15 @@
     "test": "tests"
   },
   "dependencies": {
-    "stream-chain": "^3.6.1",
+    "stream-chain": "^3.6.2",
     "stream-json": "^2.1.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "prettier": "^3.8.1",
-    "tape-six": "^1.7.13",
-    "tape-six-proc": "^1.2.8",
-    "typescript": "^6.0.2"
+    "@types/node": "^25.7.0",
+    "prettier": "^3.8.3",
+    "tape-six": "^1.9.0",
+    "tape-six-proc": "^1.2.9",
+    "typescript": "^6.0.3"
   },
   "tape6": {
     "tests": [

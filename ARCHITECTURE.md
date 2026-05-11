@@ -6,7 +6,8 @@
 
 ```
 package.json              # Package config (type: commonjs)
-tsconfig.json             # TypeScript config (noEmit, es2022, node16)
+tsconfig.json             # TypeScript config for .d.ts (strict, noEmit, es2022, node16)
+tsconfig.check.json       # JS lint config (allowJs+checkJs, noUnusedLocals/Parameters)
 src/
 ├── index.js (+.d.ts)     # Main entry point: parser + emit()
 ├── parser.js (+.d.ts)    # Streaming CSV parser (flushable function)
@@ -160,6 +161,7 @@ After `asObjects` converts rows to object tokens, `stream-json`'s `streamValues`
 
 - **Framework**: tape-six
 - **Run all**: `npm test` (runs `tape6 --flags FO`)
-- **Type-check**: `npm run ts-check` (runs `tsc --noEmit`)
+- **Type-check (`.d.ts`)**: `npm run ts-check` (runs `tsc --noEmit`)
+- **JS lint**: `npm run js-check` (runs `tsc --project tsconfig.check.json` over `src/` — unused locals/parameters, undeclared refs)
 - **Lint**: `npm run lint` / `npm run lint:fix`
 - **Test helper**: `tests/read-string.mjs` streams a string in configurable chunk sizes for testing chunked input.

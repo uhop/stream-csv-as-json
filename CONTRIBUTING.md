@@ -18,8 +18,9 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the module map and dependency graph
 
 1. Make your changes.
 2. Test: `npm test`
-3. Type-check: `npm run ts-check`
-4. Lint: `npm run lint`
+3. Type-check `.d.ts`: `npm run ts-check`
+4. JS lint (`src/**/*.js`): `npm run js-check`
+5. Lint: `npm run lint`
 
 ## Code style
 

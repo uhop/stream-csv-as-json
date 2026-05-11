@@ -19,8 +19,11 @@ npm install
 
 - **Install:** `npm install`
 - **Test:** `npm test` (runs `tape6 --flags FO`)
+- **Test (Bun):** `npm run test:bun`
+- **Test (sequential):** `npm run test:proc`
 - **Test (TS only):** `npm run ts-test`
-- **Type-check:** `npm run ts-check` (runs `tsc --noEmit`)
+- **Type-check (`.d.ts`):** `npm run ts-check` (runs `tsc --noEmit`)
+- **JS lint:** `npm run js-check` (runs `tsc --project tsconfig.check.json` over `src/`)
 - **Lint:** `npm run lint` / `npm run lint:fix`
 
 ## Project structure
@@ -28,7 +31,8 @@ npm install
 ```
 stream-csv-as-json/
 ├── package.json            # Package config (type: commonjs)
-├── tsconfig.json           # TypeScript config (noEmit, es2022, node16)
+├── tsconfig.json           # TypeScript config for .d.ts (strict, noEmit, es2022, node16)
+├── tsconfig.check.json     # JS lint config (allowJs+checkJs, noUnusedLocals/Parameters)
 ├── src/                    # Source files
 │   ├── index.js            # Main entry point: parser + emit()
 │   ├── index.d.ts          # TypeScript declarations for index
