@@ -16,7 +16,7 @@ const stringer = options => {
     separator = options.separator || ',';
     'rowTerminator' in options && (rowTerminator = options.rowTerminator);
     if (separator !== ',') {
-      const sep = separator.replace(/[#-.]|[[-^]|[?|{}]/g, '\\$&');
+      const sep = separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       containsQuotables = new RegExp(containsQuotables.source.replace('[,', '[' + sep));
     }
   }

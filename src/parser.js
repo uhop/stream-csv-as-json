@@ -14,7 +14,7 @@ const defaultPatterns = {
 };
 
 const buildPatterns = separator => {
-  const sep = separator === ',' ? ',' : separator.replace(/[#-.]|[[-^]|[?|{}]/g, '\\$&'),
+  const sep = separator === ',' ? ',' : separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
     sepOr = '|' + sep + '|',
     sepNot = '[^' + sep;
   const result = {};
