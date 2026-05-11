@@ -94,6 +94,32 @@ test.asPromise('stringer: useValues custom separator (pipe)', async (t, resolve,
   resolve();
 });
 
+test.asPromise('stringer: custom rowTerminator (LF only)', async (t, resolve, reject) => {
+  const table = [
+    ['a', 'b'],
+    ['1', '2']
+  ];
+  const expected = '"a","b"\n"1","2"\n';
+
+  const pipeline = chain([readString(toCsv(table)), parser(), stringer({rowTerminator: '\n'})]);
+  const result = await collect(pipeline);
+  t.equal(result, expected);
+  resolve();
+});
+
+test.asPromise('stringer: useValues custom rowTerminator (LF only)', async (t, resolve, reject) => {
+  const table = [
+    ['a', 'b'],
+    ['1', '2']
+  ];
+  const expected = 'a,b\n1,2\n';
+
+  const pipeline = chain([readString(toCsv(table)), parser(), stringer({useValues: true, rowTerminator: '\n'})]);
+  const result = await collect(pipeline);
+  t.equal(result, expected);
+  resolve();
+});
+
 test.asPromise('stringer: useValues tab separator', async (t, resolve, reject) => {
   const table = [
     ['1', '\t', '', '"', ''],

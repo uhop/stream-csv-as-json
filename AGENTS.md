@@ -82,14 +82,18 @@ stream-csv-as-json/
 - **parser** (`src/parser.js`) is the core. It consumes CSV text and produces a SAX-like token stream. Uses `flushable()` from `stream-chain`, wrapped with `fixUtf8Stream()` via `gen()`.
   - Factory: `parser(options)` returns a flushable function. `parser.asStream(options)` returns a Duplex.
   - Options: `packStrings`/`packValues` (default: true), `streamStrings`/`streamValues` (default: true), `separator` (default: `','`).
-  - Uses sticky RegExp for performance.
+  - Uses sticky RegExp for performance; each parser instance gets its own pattern set.
+  - Reads CRLF (RFC 4180), LF, and bare CR as row terminators.
+  - Strips a single leading UTF-8 BOM (`U+FEFF`) at the start of input.
+  - Throws on malformed quoted values: an unterminated quoted value at end-of-input, or a non-separator/non-newline character after a closing quote.
 - **asObjects** (`src/as-objects.js`) transforms the token stream: uses the first row as field names, converts subsequent rows from array tokens to object tokens.
   - Factory: `asObjects(options)` returns a flushable function. `asObjects.asStream(options)` returns a Duplex.
-  - Options: `packKeys`, `streamKeys`, `useStringValues`/`useValues`, `fieldPrefix` (default: `'field'`).
+  - Options: `packKeys`, `streamKeys`, `fieldPrefix` (default: `'field'`).
+  - The header collector auto-detects the upstream parser's mode (stream tokens or packed `stringValue`); the legacy `useStringValues` / `useValues` options are deprecated no-ops.
   - `asObjects.withParser(options)` / `asObjects.withParserAsStream(options)` for combined pipelines.
 - **stringer** (`src/stringer.js`) converts a CSV token stream back to CSV text. Handles quoting of values containing separators, quotes, or newlines.
   - Factory: `stringer(options)` returns a flushable function. `stringer.asStream(options)` returns a Duplex.
-  - Options: `useStringValues`/`useValues`, `separator` (default: `','`).
+  - Options: `useStringValues`/`useValues`, `separator` (default: `','`), `rowTerminator` (default: `'\r\n'` per RFC 4180; pass `'\n'` for Unix-style output).
 - **Main module** (`src/index.js`) creates a parser stream with `emit()` applied (from `stream-json/utils/emit`).
 - **with-parser** (`src/utils/with-parser.js`) CSV-specific version of `stream-json`'s `withParser` utility.
 

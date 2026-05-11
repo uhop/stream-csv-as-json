@@ -55,16 +55,19 @@ All downstream components (AsObjects, Stringer, and `stream-json` filters/stream
    - `packStrings`/`packValues` (default: true) — emit `stringValue` tokens with the complete field value.
    - `streamStrings`/`streamValues` (default: true) — emit `startString`/`stringChunk`/`endString` tokens for incremental processing.
    - `separator` (default: `','`) — field separator character.
-5. Uses sticky RegExp (`/y` flag) for performance.
-6. Handles quoted fields (RFC 4180): double-quote escaping, embedded separators, embedded newlines.
-7. Handles both `\r\n` and `\n` line endings.
-8. Returns `many(tokens)` or `none` from `stream-chain` for proper backpressure handling.
+5. Uses sticky RegExp (`/y` flag) for performance. Each parser instance gets its own pattern set built from the configured separator.
+6. Handles quoted fields (RFC 4180): double-quote escaping, embedded separators, embedded newlines. CRLF is the spec line terminator; the parser also accepts LF and bare CR.
+7. Strips a single leading UTF-8 BOM (`U+FEFF`) from the input.
+8. Throws on malformed quoted values:
+   - Unterminated quoted value at end-of-input: `"Parser cannot parse input: expected a quoted value"`.
+   - Non-separator/non-newline character after a closing quote: `"Parser cannot parse input: unexpected character after a quoted value"`.
+9. Returns `many(tokens)` or `none` from `stream-chain` for proper backpressure handling.
 
 ### asObjects
 
 `asObjects(options)` returns a flushable function. It transforms the token stream in two phases:
 
-1. **Header phase**: Consumes the first row's `stringChunk`/`endString` (or `stringValue`) tokens to build a list of field names.
+1. **Header phase**: Consumes the first row to build a list of field names. The collector handles both parser modes: `startString`/`stringChunk`/`endString` sequences (default parser) and packed `stringValue` tokens (`parser({streamStrings: false})`). It is safe to wire any parser configuration through `asObjects()` without an explicit option.
 2. **Data phase**: Converts subsequent rows from array tokens to object tokens:
    - `startArray` → `startObject`
    - `endArray` → `endObject`
@@ -74,8 +77,8 @@ Options:
 
 - `packKeys` (default: true) — emit `keyValue` tokens.
 - `streamKeys` (default: true) — emit `startKey`/`stringChunk`/`endKey` tokens.
-- `useStringValues`/`useValues` (default: false) — consume `stringValue` tokens instead of `stringChunk`/`endString` in the header phase.
-- `fieldPrefix` (default: `'field'`) — prefix for unnamed fields (when data has more columns than headers).
+- `fieldPrefix` (default: `'field'`) — prefix for unnamed fields (used when data has more columns than headers, or when a header cell is empty).
+- `useStringValues` / `useValues` — deprecated no-op kept for backward compatibility; the header collector now auto-detects parser mode.
 
 Methods:
 
@@ -96,8 +99,7 @@ Options:
 
 - `useStringValues`/`useValues` (default: false) — switch to value mode.
 - `separator` (default: `','`) — field separator character.
-
-Rows are terminated with `\r\n`.
+- `rowTerminator` (default: `'\r\n'`) — row terminator string. RFC 4180 specifies CRLF; override with `'\n'` for Unix-style output.
 
 ### Main module
 

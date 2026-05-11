@@ -29,7 +29,7 @@ test.asPromise('as-objects: simple', (t, resolve, reject) => {
   });
 });
 
-test.asPromise('as-objects: with useValues parser option', (t, resolve, reject) => {
+test.asPromise('as-objects: header captures from packed-only parser (streamStrings: false)', (t, resolve, reject) => {
   const input = 'alpha,beta,gamma\r\n1,,"",""""\r\n2,three,"four",five\r\n',
     expected = [
       {alpha: '1', beta: '', gamma: '', field3: '"'},
@@ -37,7 +37,7 @@ test.asPromise('as-objects: with useValues parser option', (t, resolve, reject) 
     ],
     result = [];
 
-  const pipeline = chain([readString(input), parser({useValues: true}), asObjects()]);
+  const pipeline = chain([readString(input), parser({streamStrings: false}), asObjects()]);
   const asm = new Assembler();
 
   pipeline.on('data', token => {

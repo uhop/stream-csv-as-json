@@ -192,3 +192,86 @@ test.asPromise('parser: empty input', (t, resolve, reject) => {
     resolve();
   });
 });
+
+test.asPromise('parser: blank line between rows emits empty array row', (t, resolve, reject) => {
+  const input = 'a,b\r\n\r\nc,d\r\n',
+    result = [];
+
+  const pipeline = chain([readString(input), parser()]);
+  const asm = new Assembler();
+
+  pipeline.on('data', token => {
+    asm[token.name] && asm[token.name](token.value);
+    if (asm.done) result.push(asm.current);
+  });
+  pipeline.on('error', reject);
+  pipeline.on('end', () => {
+    t.deepEqual(result, [['a', 'b'], [], ['c', 'd']]);
+    resolve();
+  });
+});
+
+test.asPromise('parser: bare \\r\\n alone emits one empty array', (t, resolve, reject) => {
+  const input = '\r\n',
+    result = [];
+
+  const pipeline = chain([readString(input), parser()]);
+  const asm = new Assembler();
+
+  pipeline.on('data', token => {
+    asm[token.name] && asm[token.name](token.value);
+    if (asm.done) result.push(asm.current);
+  });
+  pipeline.on('error', reject);
+  pipeline.on('end', () => {
+    t.deepEqual(result, [[]]);
+    resolve();
+  });
+});
+
+test.asPromise('parser: strips leading UTF-8 BOM', (t, resolve, reject) => {
+  const input = '﻿a,b\r\n1,2\r\n',
+    result = [];
+
+  const pipeline = chain([readString(input), parser()]);
+  const asm = new Assembler();
+
+  pipeline.on('data', token => {
+    asm[token.name] && asm[token.name](token.value);
+    if (asm.done) result.push(asm.current);
+  });
+  pipeline.on('error', reject);
+  pipeline.on('end', () => {
+    t.deepEqual(result, [
+      ['a', 'b'],
+      ['1', '2']
+    ]);
+    resolve();
+  });
+});
+
+test.asPromise('parser: throws on character after closing quote', (t, resolve, reject) => {
+  const input = '"a"b,c\r\n';
+
+  const pipeline = chain([readString(input), parser()]);
+
+  pipeline.on('data', () => {});
+  pipeline.on('error', err => {
+    t.ok(/unexpected character after a quoted value/.test(err.message), 'error mentions unexpected char');
+    resolve();
+  });
+  pipeline.on('end', () => reject(new Error('expected an error, got end')));
+});
+
+test.asPromise('parser: throws on unterminated quoted value', (t, resolve, reject) => {
+  const input = '"abc';
+
+  const pipeline = chain([readString(input), parser()]);
+
+  pipeline.on('data', () => {});
+  pipeline.on('error', err => {
+    t.ok(/expected a quoted value/.test(err.message), 'error mentions expected quoted value');
+    resolve();
+  });
+  pipeline.on('end', () => reject(new Error('expected an error, got end')));
+});

@@ -7,12 +7,14 @@ const {asStream, flushable, none} = require('stream-chain');
 const stringer = options => {
   let useStringValues = false;
   let separator = ',';
+  let rowTerminator = '\r\n';
   let containsQuotables = /[,\r\n"]/;
 
   if (options) {
     'useValues' in options && (useStringValues = options.useValues);
     'useStringValues' in options && (useStringValues = options.useStringValues);
     separator = options.separator || ',';
+    'rowTerminator' in options && (rowTerminator = options.rowTerminator);
     if (separator !== ',') {
       const sep = separator.replace(/[#-.]|[[-^]|[?|{}]/g, '\\$&');
       containsQuotables = new RegExp(containsQuotables.source.replace('[,', '[' + sep));
@@ -20,7 +22,6 @@ const stringer = options => {
   }
 
   let skipSeparator = false;
-  let skip = false;
 
   if (useStringValues) {
     return flushable(chunk => {
@@ -30,12 +31,12 @@ const stringer = options => {
           skipSeparator = true;
           return none;
         case 'endArray':
-          return '\r\n';
-        case 'stringValue':
-          if (skip) return none;
-          let result = '';
+          return rowTerminator;
+        case 'stringValue': {
+          let result;
           if (skipSeparator) {
             skipSeparator = false;
+            result = '';
           } else {
             result = separator;
           }
@@ -44,14 +45,10 @@ const stringer = options => {
             return result + '"' + value.replace(/"/g, '""') + '"';
           }
           return result + value;
+        }
         case 'startString':
-          skip = true;
-          return none;
         case 'endString':
-          skip = false;
-          return none;
         case 'stringChunk':
-          return none;
         case 'startObject':
         case 'endObject':
         case 'startKey':
@@ -70,21 +67,22 @@ const stringer = options => {
         skipSeparator = true;
         return none;
       case 'endArray':
-        return '\r\n';
-      case 'startString':
-        let prefix = '';
+        return rowTerminator;
+      case 'startString': {
+        let prefix;
         if (skipSeparator) {
           skipSeparator = false;
+          prefix = '';
         } else {
           prefix = separator;
         }
         return prefix + '"';
+      }
       case 'endString':
         return '"';
       case 'stringChunk':
         return chunk.value.replace(/"/g, '""');
       case 'stringValue':
-        return none;
       case 'startObject':
       case 'endObject':
       case 'startKey':

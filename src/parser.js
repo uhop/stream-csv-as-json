@@ -14,8 +14,7 @@ const defaultPatterns = {
 };
 
 const buildPatterns = separator => {
-  if (separator === ',') return defaultPatterns;
-  const sep = separator.replace(/[#-.]|[[-^]|[?|{}]/g, '\\$&'),
+  const sep = separator === ',' ? ',' : separator.replace(/[#-.]|[[-^]|[?|{}]/g, '\\$&'),
     sepOr = '|' + sep + '|',
     sepNot = '[^' + sep;
   const result = {};
@@ -50,7 +49,8 @@ const csvParser = options => {
     expect = 'value1',
     expectLF = false,
     accumulator = '',
-    buffer = '';
+    buffer = '',
+    firstChunk = true;
 
   return flushable(buf => {
     const tokens = [];
@@ -58,6 +58,10 @@ const csvParser = options => {
     if (buf === none) {
       done = true;
     } else {
+      if (firstChunk) {
+        firstChunk = false;
+        if (buf.charCodeAt(0) === 0xfeff) buf = buf.slice(1);
+      }
       buffer += buf;
     }
 
@@ -166,7 +170,12 @@ const csvParser = options => {
         case 'quotedContinuation':
           patterns.quotedContinuation.lastIndex = index;
           match = patterns.quotedContinuation.exec(buffer);
-          if (!match) break main;
+          if (!match) {
+            if (index < buffer.length) {
+              throw new Error('Parser cannot parse input: unexpected character after a quoted value');
+            }
+            break main;
+          }
           value = match[0];
           if (value === '"') {
             streamStrings && tokens.push({name: 'stringChunk', value: '"'});
@@ -221,7 +230,7 @@ const csvParser = options => {
 
 const parser = options => gen(fixUtf8Stream(), csvParser(options));
 
-parser.asStream = options => asStream(parser(options), options);
+parser.asStream = options => asStream(parser(options), {...options, writableObjectMode: false, readableObjectMode: true});
 parser.parser = parser;
 
 module.exports = parser;

@@ -23,6 +23,11 @@ declare namespace stringer {
     useValues?: boolean;
     /** Field separator character. Default: `','`. */
     separator?: string;
+    /**
+     * Row terminator string. Default: `'\r\n'` per RFC 4180.
+     * Common alternatives: `'\n'` for Unix-style output.
+     */
+    rowTerminator?: string;
   }
 
   /** Creates a Stringer as a Duplex stream.

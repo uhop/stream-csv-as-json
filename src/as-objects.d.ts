@@ -26,9 +26,15 @@ declare namespace asObjects {
     streamKeys?: boolean;
     /** Alias for `streamKeys`. */
     streamValues?: boolean;
-    /** Use packed `stringValue` tokens in the header phase. Default: `false`. */
+    /**
+     * @deprecated The header collector auto-detects whether the upstream parser
+     * is emitting stream tokens or packed `stringValue` tokens; this option is
+     * a no-op kept for backward compatibility.
+     */
     useStringValues?: boolean;
-    /** Alias for `useStringValues`. */
+    /**
+     * @deprecated Alias for the deprecated `useStringValues`. No-op.
+     */
     useValues?: boolean;
     /** Prefix for unnamed fields. Default: `'field'`. */
     fieldPrefix?: string;

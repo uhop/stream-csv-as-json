@@ -7,7 +7,6 @@ const withParser = require('./utils/with-parser.js');
 
 const asObjects = options => {
   let fieldPrefix = 'field';
-  let useStringValues = false;
   let packKeys = true,
     streamKeys = true;
 
@@ -16,8 +15,6 @@ const asObjects = options => {
     'packKeys' in options && (packKeys = options.packKeys);
     'streamValues' in options && (streamKeys = options.streamValues);
     'streamKeys' in options && (streamKeys = options.streamKeys);
-    'useValues' in options && (useStringValues = options.useValues);
-    'useStringValues' in options && (useStringValues = options.useStringValues);
     'fieldPrefix' in options && (fieldPrefix = options.fieldPrefix);
   }
   !packKeys && (streamKeys = true);
@@ -25,6 +22,7 @@ const asObjects = options => {
   const keys = [];
   let headerDone = false;
   let headerBuffer = '';
+  let headerStreaming = false;
   let fieldIndex = 0;
   let expected = '';
   let passThrough = false;
@@ -42,33 +40,34 @@ const asObjects = options => {
     packKeys && tokens.push({name: 'keyValue', value: key});
   };
 
-  const headerCollector = useStringValues
-    ? chunk => {
-        switch (chunk.name) {
-          case 'endArray':
-            headerDone = true;
-            break;
-          case 'stringValue':
-            keys.push(chunk.value);
-            break;
+  const headerCollector = chunk => {
+    switch (chunk.name) {
+      case 'endArray':
+        headerDone = true;
+        break;
+      case 'startString':
+        headerStreaming = true;
+        headerBuffer = '';
+        break;
+      case 'stringChunk':
+        headerStreaming && (headerBuffer += chunk.value);
+        break;
+      case 'endString':
+        if (headerStreaming) {
+          keys.push(headerBuffer);
+          headerBuffer = '';
         }
-        return none;
-      }
-    : chunk => {
-        switch (chunk.name) {
-          case 'endArray':
-            headerDone = true;
-            break;
-          case 'stringChunk':
-            headerBuffer += chunk.value;
-            break;
-          case 'endString':
-            keys.push(headerBuffer);
-            headerBuffer = '';
-            break;
+        break;
+      case 'stringValue':
+        if (headerStreaming) {
+          headerStreaming = false;
+        } else {
+          keys.push(chunk.value);
         }
-        return none;
-      };
+        break;
+    }
+    return none;
+  };
 
   return flushable(chunk => {
     if (chunk === none) return none;
