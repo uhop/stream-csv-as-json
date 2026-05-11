@@ -11,8 +11,15 @@ export = parser;
  * Each CSV row is represented as an array of strings using `startArray`/`endArray` tokens.
  * Individual field values can be streamed piece-wise or packed into single tokens.
  *
+ * Row terminator acceptance is lenient — CRLF (RFC 4180), LF, and bare CR all work.
+ * A leading UTF-8 BOM (`U+FEFF`) at the start of the input is stripped.
+ *
  * @param options - Parser configuration including packing, streaming, and separator options.
  * @returns A flushable function for use in a `chain()` pipeline.
+ * @throws `Error` when the input contains a malformed quoted value:
+ *   - `"Parser cannot parse input: expected a quoted value"` if the input ends mid-quote.
+ *   - `"Parser cannot parse input: unexpected character after a quoted value"` if a character
+ *     other than the separator, CR, LF, or `"` appears immediately after a closing `"`.
  */
 declare function parser(options?: parser.ParserOptions): Flushable<string, Many<parser.Token> | typeof none>;
 

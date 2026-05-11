@@ -48,7 +48,10 @@ test('types: stringer', t => {
   const s3 = stringer.stringer({useStringValues: true});
   t.equal(typeof s3, 'function');
 
-  const opts: stringer.StringerOptions = {useValues: true, separator: ','};
+  const s4: Duplex = stringer.asStream({rowTerminator: '\n'});
+  t.ok(s4);
+
+  const opts: stringer.StringerOptions = {useValues: true, separator: ',', rowTerminator: '\r\n'};
   t.ok(opts);
 });
 

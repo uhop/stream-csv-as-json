@@ -275,3 +275,47 @@ test.asPromise('parser: throws on unterminated quoted value', (t, resolve, rejec
   });
   pipeline.on('end', () => reject(new Error('expected an error, got end')));
 });
+
+test.asPromise('parser: mixed CRLF / LF / bare CR row terminators', (t, resolve, reject) => {
+  const input = 'a,b\r\nc,d\ne,f\rg,h\r\n',
+    result = [];
+
+  const pipeline = chain([readString(input), parser()]);
+  const asm = new Assembler();
+
+  pipeline.on('data', token => {
+    asm[token.name] && asm[token.name](token.value);
+    if (asm.done) result.push(asm.current);
+  });
+  pipeline.on('error', reject);
+  pipeline.on('end', () => {
+    t.deepEqual(result, [
+      ['a', 'b'],
+      ['c', 'd'],
+      ['e', 'f'],
+      ['g', 'h']
+    ]);
+    resolve();
+  });
+});
+
+test.asPromise('parser: regex-special separator (period)', (t, resolve, reject) => {
+  const input = 'a.b.c\r\n1.2.3\r\n',
+    result = [];
+
+  const pipeline = chain([readString(input), parser({separator: '.'})]);
+  const asm = new Assembler();
+
+  pipeline.on('data', token => {
+    asm[token.name] && asm[token.name](token.value);
+    if (asm.done) result.push(asm.current);
+  });
+  pipeline.on('error', reject);
+  pipeline.on('end', () => {
+    t.deepEqual(result, [
+      ['a', 'b', 'c'],
+      ['1', '2', '3']
+    ]);
+    resolve();
+  });
+});

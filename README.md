@@ -117,19 +117,21 @@ See the full documentation in the [Wiki](https://github.com/uhop/stream-csv-as-j
 
 ### stringer options
 
-| Option                          | Default | Description                                                |
-| ------------------------------- | ------- | ---------------------------------------------------------- |
-| `useStringValues` / `useValues` | `false` | Use packed `stringValue` tokens instead of streamed chunks |
-| `separator`                     | `','`   | Field separator character                                  |
+| Option                          | Default  | Description                                                                 |
+| ------------------------------- | -------- | --------------------------------------------------------------------------- |
+| `useStringValues` / `useValues` | `false`  | Use packed `stringValue` tokens instead of streamed chunks                  |
+| `separator`                     | `','`    | Field separator character                                                   |
+| `rowTerminator`                 | `'\r\n'` | Row terminator string. CRLF per RFC 4180; pass `'\n'` for Unix-style output |
 
 ### asObjects options
 
-| Option                          | Default   | Description                                           |
-| ------------------------------- | --------- | ----------------------------------------------------- |
-| `packKeys` / `packValues`       | `true`    | Emit `keyValue` tokens                                |
-| `streamKeys` / `streamValues`   | `true`    | Emit `startKey`/`stringChunk`/`endKey` tokens         |
-| `useStringValues` / `useValues` | `false`   | Use packed `stringValue` tokens for header collection |
-| `fieldPrefix`                   | `'field'` | Prefix for unnamed/extra fields                       |
+| Option                        | Default   | Description                                   |
+| ----------------------------- | --------- | --------------------------------------------- |
+| `packKeys` / `packValues`     | `true`    | Emit `keyValue` tokens                        |
+| `streamKeys` / `streamValues` | `true`    | Emit `startKey`/`stringChunk`/`endKey` tokens |
+| `fieldPrefix`                 | `'field'` | Prefix for unnamed/extra fields               |
+
+> `useStringValues` / `useValues` on `asObjects` are deprecated no-ops kept for backward compatibility — the header collector now auto-detects the parser's mode.
 
 ## TypeScript
 
