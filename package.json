@@ -60,7 +60,7 @@
     "test": "tests"
   },
   "dependencies": {
-    "stream-chain": "^3.6.2",
+    "stream-chain": "^4.0.1",
     "stream-json": "^2.1.0"
   },
   "devDependencies": {
