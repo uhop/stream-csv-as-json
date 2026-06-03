@@ -93,6 +93,22 @@ import stringer from 'stream-csv-as-json/stringer.js';
 chain([parser(), stringer(), fs.createWriteStream('output.csv')]);
 ```
 
+## File components (Node)
+
+Node-only file-edge stages compose stream-chain's async block reader/writer with the core parser/stringer. Drive them with `pipe` + `drain` from `stream-chain/utils` — the writer closes its file handle on flush.
+
+- `parseFile(options)` (`stream-csv-as-json/file/parser.js`) — turns a file path into a token stream (`gen(asyncBlockReader, parser)`). Adds `readBlockSize` (default 64 KB).
+- `stringerToFile(path, options)` (`stream-csv-as-json/file/stringer.js`) — writes a token stream to a file (`gen(stringer, asyncBlockWriter)`). Adds `writeBlockSize` (default 1 MB).
+
+```js
+import pipe from 'stream-chain/utils/pipe.js';
+import drain from 'stream-chain/utils/drain.js';
+import parseFile from 'stream-csv-as-json/file/parser.js';
+import stringerToFile from 'stream-csv-as-json/file/stringer.js';
+
+await drain(pipe(parseFile(), stringerToFile('out.csv', {useValues: true}))('in.csv'));
+```
+
 ## Token protocol
 
 The parser emits `{name, value}` tokens: `startArray`, `endArray`, `startString`, `endString`, `stringChunk`, `stringValue`. After `asObjects`: `startObject`, `endObject`, `startKey`, `endKey`, `keyValue`. Typed as discriminated unions (`parser.Token`, `asObjects.AsObjectsToken`).

@@ -312,6 +312,32 @@ chain([
 - `withParser(fn, options)` — returns a flushable composing `parser(options)` then `fn(options)`.
 - `withParser.asStream(fn, options)` — Node `Duplex`. `withParser.asWebStream(fn, options)` — Web pair.
 
+## File components (Node-only)
+
+File-edge stages under `stream-csv-as-json/file/` compose stream-chain's async block reader/writer with the core parser/stringer. They use `node:fs/promises` (Node-only) and resolve through the `./*` export.
+
+- `parseFile(options)` (`stream-csv-as-json/file/parser.js`) — input-edge stage: `gen(asyncBlockReader(options), parser(options))`. Pass a file path as the input value; yields the CSV token stream. Options extend the parser options with `readBlockSize` (default 65536 / 64 KB). Also exported as the named `parser`.
+- `stringerToFile(path, options)` (`stream-csv-as-json/file/stringer.js`) — output-edge sink: `gen(stringer(options), asyncBlockWriter(path, options))`. Writes the token stream to `path`. Options extend the stringer options with `writeBlockSize` (default 1048576 / 1 MB). Also exported as the named `stringer`. The writer opens lazily and closes its file handle on the flush signal, so the pipeline **must** be flushed.
+
+Drive a file pipeline with `pipe` + `drain` from `stream-chain/utils` (`pipe` runs the flush after the data pass, which is required for the writer to close):
+
+```js
+import pipe from 'stream-chain/utils/pipe.js';
+import drain from 'stream-chain/utils/drain.js';
+import parseFile from 'stream-csv-as-json/file/parser.js';
+import stringerToFile from 'stream-csv-as-json/file/stringer.js';
+
+// Parse a file into tokens:
+await drain(
+  pipe(parseFile(), token => {
+    /* handle token */ return null;
+  })('in.csv')
+);
+
+// Round-trip a file:
+await drain(pipe(parseFile(), stringerToFile('out.csv', {useValues: true}))('in.csv'));
+```
+
 ## Common patterns
 
 ### Stream a huge CSV as token objects

@@ -36,7 +36,9 @@ test.asPromise('parser: low-level tokens', (t, resolve, reject) => {
 
   const pipeline = chain([readString(input), parser()]);
 
-  pipeline.on('data', token => result.push(token));
+  // Map to fresh objects: structural tokens are module-level singletons, and
+  // deep6.equal (circular: true) reports reused references as Circular mismatches.
+  pipeline.on('data', token => result.push('value' in token ? {name: token.name, value: token.value} : {name: token.name}));
   pipeline.on('error', reject);
   pipeline.on('end', () => {
     t.deepEqual(result, expected);

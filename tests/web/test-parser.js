@@ -45,7 +45,11 @@ test.asPromise('parser (web): low-level tokens', async (t, resolve, reject) => {
       {name: 'endArray'}
     ];
     const out = await drain(chain([readWebString(input), parser()]));
-    t.deepEqual(out, expected);
+    // Map to fresh objects: structural tokens are singletons, which deep6.equal reports as Circular.
+    t.deepEqual(
+      out.map(token => ('value' in token ? {name: token.name, value: token.value} : {name: token.name})),
+      expected
+    );
     resolve();
   } catch (e) {
     reject(e);

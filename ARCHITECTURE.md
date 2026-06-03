@@ -19,12 +19,16 @@ src/
 ├── as-objects.js (+.d.ts)
 ├── stringer.js (+.d.ts)
 ├── utils/with-parser.js (+.d.ts)
-└── web/                  # Web Streams wrappers (browser-safe, no node:*)
-    ├── index.js (+.d.ts) # Web entry: default = parser.asWebStream
-    ├── parser.js (+.d.ts)        # attaches .asWebStream only
-    ├── as-objects.js (+.d.ts)
-    ├── stringer.js (+.d.ts)
-    └── utils/with-parser.js (+.d.ts)
+├── web/                  # Web Streams wrappers (browser-safe, no node:*)
+│   ├── index.js (+.d.ts) # Web entry: default = parser.asWebStream
+│   ├── parser.js (+.d.ts)        # attaches .asWebStream only
+│   ├── as-objects.js (+.d.ts)
+│   ├── stringer.js (+.d.ts)
+│   └── utils/with-parser.js (+.d.ts)
+└── file/                 # Node-only file-edge components (fs)
+    ├── parser.js (+.d.ts)        # parseFile = gen(asyncBlockReader, parser)
+    ├── stringer.js (+.d.ts)      # stringerToFile = gen(stringer, asyncBlockWriter)
+    └── index.js (+.d.ts)
 tests/                    # Tests (tape-six)
 ├── helpers.js            # Node helpers: readString (chunked input), streamToArray
 ├── web-helpers.js        # Browser-safe Web Streams helpers: readWebString, drain, writeAndCollect
@@ -71,7 +75,7 @@ All downstream components (asObjects, stringer, and `stream-json` filters/stream
    - `packStrings`/`packValues` (default: true) — emit `stringValue` tokens with the complete field value.
    - `streamStrings`/`streamValues` (default: true) — emit `startString`/`stringChunk`/`endString` tokens for incremental processing.
    - `separator` (default: `','`) — field separator character.
-5. Uses sticky RegExp (`/y` flag) for performance. Each parser instance gets its own pattern set built from the configured separator.
+5. The value state takes a `charCodeAt` whole-field fast path: it scans an unquoted field (or a quoted field, decoding `""` escapes) to its terminator in a single pass and emits one set of tokens with no regex engine — when the terminating separator/CR/LF is already in the buffer. Fields that abut the buffer tail, empty fields, row terminators, and multi-char separators fall back **verbatim** to the incremental sticky-regex (`/y` flag) machine, which preserves exact resumability and error behavior. Structural tokens (`startArray`/`endArray`/`startString`/`endString`) are module-level singletons. Each parser instance gets its own regex pattern set built from the configured separator.
 6. Handles quoted fields (RFC 4180): double-quote escaping, embedded separators, embedded newlines. CRLF is the spec line terminator; the parser also accepts LF and bare CR.
 7. Strips a single leading UTF-8 BOM (`U+FEFF`) from the input.
 8. Throws on malformed quoted values:
@@ -117,6 +121,10 @@ Options: `useStringValues`/`useValues` (default: false), `separator` (default: `
 
 `src/core/utils/with-parser.js` is a CSV-specific version of `stream-json`'s `withParser` utility. It composes the CSV parser with another component factory via `gen()`. The node/web wrappers attach `.asStream` / `.asWebStream`.
 
+### file components
+
+Node-only file-edge stages (`src/file/`). `parseFile(options)` = `gen(asyncBlockReader(options), parser(options))` turns a file path into a CSV token stream; `stringerToFile(path, options)` = `gen(stringer(options), asyncBlockWriter(path, options))` writes a token stream to a file. Both reuse stream-chain's public `asyncBlockReader` / `asyncBlockWriter` utils (64 KB read / 1 MB write blocks, `StringDecoder` for cross-block UTF-8). Drive them with `pipe` + `drain` from `stream-chain/utils` — the writer closes its file handle on the flush signal. They resolve through the `./*` export (no dedicated `exports` entry); `src/file/index.js` is a barrel.
+
 ## Module dependency graph
 
 ```
@@ -136,6 +144,10 @@ src/web/as-objects.js       ── stream-chain/web (asWebStream), src/core/as-o
 src/web/stringer.js         ── stream-chain/web (asWebStream), src/core/stringer
 src/web/utils/with-parser.js ── stream-chain/web (asWebStream), src/core/utils/with-parser
 src/web/index.js            ── src/web/parser
+
+src/file/parser.js          ── stream-chain/core (gen), stream-chain/utils/asyncBlockReader, src/core/parser
+src/file/stringer.js        ── stream-chain/core (gen), stream-chain/utils/asyncBlockWriter, src/core/stringer
+src/file/index.js           ── src/file/parser, src/file/stringer
 ```
 
 ## Import paths
