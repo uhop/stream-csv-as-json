@@ -172,7 +172,7 @@ BSD-3-Clause
 
 ## Release history
 
-- 3.0.0 _ESM-only (Node 22+). Web Streams support via the `/web` entry and `.asWebStream()` on every component; Node-only file-edge components (`parseFile`, `stringerToFile`); a ~2× faster `charCodeAt` parser; on `stream-chain` 4.x / `stream-json` 3.x. Source split into substrate-free `core/` + Node `src/` + `web/`. Discriminated-union token types. See the [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x)._
+- 3.0.0 _ESM-only (Node 22+). Web Streams support. Node-only file-edge components (`parseFile`, `stringerToFile`). Improved parser. See the [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x)._
 - 2.1.0 _Configurable `rowTerminator` on `stringer`. `asObjects` header now auto-detects parser mode. Minor bugfixes._
 - 2.0.1 _Added direct dependency on `stream-chain`. Documentation updates._
 - 2.0.0 _Major rewrite: functional API (stream-chain 3.x), source in `src/`, TypeScript declarations, tape-six tests. See [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-1.x-to-2.x)._
