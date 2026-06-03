@@ -197,7 +197,7 @@ After `asObjects` converts rows to object tokens, `stream-json`'s `streamValues`
 ## Testing
 
 - **Framework**: tape-six. `npm test` runs both `tests/node/` (Node) and `tests/web/` (Web) suites.
-- **Cross-runtime**: `npm run test:bun`, `npm run test:deno`, `npm run test:browser` (puppeteer, web suite).
+- **Cross-runtime**: `npm run test:bun`, `npm run test:deno`. The `tests/web/` suites run under all three (Node/Bun/Deno) via their native Web Streams.
 - **Type-check (`.d.ts`)**: `npm run ts-check` (`tsc --noEmit`). **JS lint**: `npm run js-check` (`tsc --project tsconfig.check.json` over `src/`). **TS typing tests**: `npm run ts-test`.
 - **Lint**: `npm run lint` / `npm run lint:fix`. **Bench**: `npm run bench`.
 - **Helpers**: `tests/helpers.js` (`readString`) for Node; `tests/web-helpers.js` (`readWebString`, `drain`) for Web — browser-safe, no `node:*`.

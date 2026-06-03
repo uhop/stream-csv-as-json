@@ -23,7 +23,6 @@ Requires **Node.js 22+**. The package is **ESM-only**.
 - **Test:** `npm test` (runs `tape6 --flags FO`; runs both `tests/node/` and `tests/web/`)
 - **Test (Bun):** `npm run test:bun`
 - **Test (Deno):** `npm run test:deno`
-- **Test (browser):** `npm run test:browser` (puppeteer; runs the `tests/web/` suite)
 - **Test (sequential):** `npm run test:proc`
 - **Test (TS only):** `npm run ts-test`
 - **Type-check (`.d.ts`):** `npm run ts-check` (runs `tsc --noEmit`)
@@ -83,7 +82,7 @@ stream-csv-as-json/
 
 - **Two runtime dependencies: `stream-chain` and `stream-json`.** Do not add other packages to `dependencies`. Only `devDependencies` are allowed.
 - **Three-substrate split.** `src/core/*` holds substrate-free factories (import only `stream-chain/core` + `stream-chain/utils/*`). `src/*` (Node) attaches `.asStream` + `.asWebStream`. `src/web/*` attaches `.asWebStream` only. Keep the algorithm in `core/`; the wrappers are thin.
-- **Browser safety is load-bearing.** Nothing reachable from `src/core/*`, `src/web/*`, `tests/web/*`, or `tests/web-helpers.js` may import `node:*`. Web tests use `stream-json/web/assembler.js`, never `stream-json/assembler.js`. The puppeteer suite (`npm run test:browser`) enforces this.
+- **Browser safety is load-bearing.** Nothing reachable from `src/core/*`, `src/web/*`, `tests/web/*`, or `tests/web-helpers.js` may import `node:*`. Web tests use `stream-json/web/assembler.js`, never `stream-json/assembler.js`. Enforced by convention plus a grep audit (no `node:` imports under `src/core`, `src/web`, `tests/web`, `tests/web-helpers.js`) — there is no automated real-browser run (the puppeteer runner was dropped; its Chrome download was flaky in CI).
 - **No CJS export artifacts.** Don't attach `x.x = x` self-aliases (e.g. `parser.parser = parser`) to exported functions — pure ESM uses `export default X; export {X}` (the named-export mirror) for both import forms; `import {parser} from '…'` already works. The `.asStream` / `.asWebStream` adapter methods are real API, not artifacts.
 - **Do not modify or delete test expectations** without understanding why they changed.
 - **Do not add comments or remove comments** unless explicitly asked.
@@ -179,7 +178,7 @@ test.asPromise('example test (web)', async (t, resolve, reject) => {
 
 - Test framework: tape-six. `test.asPromise()` for async stream tests.
 - Test file naming: `test-*.js` in `tests/node/` (Node) and `tests/web/` (Web); `test-*.ts` for TypeScript typing tests.
-- The tape6 config routes `tests/node/` to the CLI runners and `tests/web/` to the browser runner; `npm test` (CLI) runs both.
+- The tape6 config keeps `tests/node/` and `tests/web/` as separate globs; `npm test` (CLI) runs both — the Web-substrate suites run under Node/Bun/Deno's native Web Streams.
 - `tests/helpers.js` (`readString`) for Node; `tests/web-helpers.js` (`readWebString`, `drain`) for Web. Web tests must not import `node:*` and use `stream-json/web/assembler.js`.
 
 ## Key conventions
