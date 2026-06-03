@@ -1,4 +1,6 @@
-import {Readable} from 'node:stream';
+import {Readable, Writable} from 'node:stream';
+
+export {readWebString, drain, writeAndCollect} from './web-helpers.js';
 
 export const readString = (string, quant, options) =>
   new Readable({
@@ -17,6 +19,15 @@ export const readString = (string, quant, options) =>
         }
       }
       this.push(null);
+    }
+  });
+
+export const streamToArray = array =>
+  new Writable({
+    objectMode: true,
+    write(chunk, _, callback) {
+      array.push(chunk);
+      callback(null);
     }
   });
 

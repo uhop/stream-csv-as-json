@@ -1,8 +1,8 @@
 import test from 'tape-six';
 
-import makeParser from '../src/index.js';
+import {make as makeParser, parser} from '../../src/index.js';
 
-import readString from './read-string.mjs';
+import {readString} from '../helpers.js';
 
 test.asPromise('main: event emission', (t, resolve, reject) => {
   const input = '1,,"",""""\r\n2,three,"four",';
@@ -70,8 +70,9 @@ test.asPromise('main: no streaming', (t, resolve, reject) => {
   readString(input).pipe(stream);
 });
 
-test.asPromise('main: parser re-export', (t, resolve) => {
-  t.equal(typeof makeParser.parser, 'function');
-  t.equal(typeof makeParser.parser.asStream, 'function');
+test.asPromise('main: parser named export', (t, resolve) => {
+  t.equal(typeof parser, 'function');
+  t.equal(typeof parser.asStream, 'function');
+  t.equal(typeof parser.asWebStream, 'function');
   resolve();
 });

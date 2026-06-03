@@ -1,13 +1,17 @@
 {
   "name": "stream-csv-as-json",
-  "version": "2.1.0",
-  "description": "stream-csv-as-json is a micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. It can parse CSV files far exceeding available memory streaming individual primitives using a SAX-inspired API.",
-  "type": "commonjs",
+  "version": "3.0.0",
+  "description": "stream-csv-as-json is a micro-library of stream components for building custom CSV processing pipelines with a minimal memory footprint, on Node.js or Web Streams. It can parse CSV files far exceeding available memory streaming individual primitives using a SAX-inspired API.",
+  "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "exports": {
     ".": "./src/index.js",
+    "./web": "./src/web/index.js",
     "./*": "./src/*"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "scripts": {
     "test": "tape6 --flags FO",
@@ -19,11 +23,13 @@
     "test:proc": "tape6-proc --flags FO",
     "test:proc:bun": "bun run `tape6-proc --self` --flags FO",
     "test:proc:deno": "deno run -A `tape6-proc --self` -r -A --flags FO",
+    "test:browser": "tape6-puppeteer --server-url http://localhost:55555 --start-server --flags FO",
     "ts-check": "tsc --noEmit",
     "js-check": "tsc --project tsconfig.check.json",
-    "ts-test": "tape6 --flags FO 'tests/test-*.*ts'",
-    "ts-test:bun": "tape6-bun --flags FO 'tests/test-*.*ts'",
-    "ts-test:deno": "tape6-deno --flags FO 'tests/test-*.*ts'",
+    "ts-test": "tape6 --flags FO 'tests/**/test-*.*ts'",
+    "ts-test:bun": "tape6-bun --flags FO 'tests/**/test-*.*ts'",
+    "ts-test:deno": "tape6-deno --flags FO 'tests/**/test-*.*ts'",
+    "bench": "nano-bench",
     "lint": "prettier --check .",
     "lint:fix": "prettier --write ."
   },
@@ -38,7 +44,12 @@
     "parser",
     "csv",
     "stream",
-    "streaming"
+    "streaming",
+    "sax",
+    "pipeline",
+    "web-streams",
+    "memory-efficient",
+    "nodejs"
   ],
   "author": "Eugene Lazutkin <eugene.lazutkin@gmail.com> (https://www.lazutkin.com/)",
   "funding": "https://github.com/sponsors/uhop",
@@ -47,12 +58,12 @@
     "url": "https://github.com/uhop/stream-csv-as-json/issues"
   },
   "homepage": "https://github.com/uhop/stream-csv-as-json#readme",
+  "llms": "https://raw.githubusercontent.com/uhop/stream-csv-as-json/master/llms.txt",
+  "llmsFull": "https://raw.githubusercontent.com/uhop/stream-csv-as-json/master/llms-full.txt",
   "files": [
     "src",
     "LICENSE",
     "README.md",
-    "AGENTS.md",
-    "ARCHITECTURE.md",
     "llms.txt",
     "llms-full.txt"
   ],
@@ -60,19 +71,36 @@
     "test": "tests"
   },
   "dependencies": {
-    "stream-chain": "^3.6.2",
-    "stream-json": "^2.1.0"
+    "stream-chain": "^4.2.2",
+    "stream-json": "^3.3.0"
   },
   "devDependencies": {
-    "@types/node": "^25.7.0",
+    "@types/node": "^25.9.1",
+    "nano-benchmark": "^1.0.16",
     "prettier": "^3.8.3",
-    "tape-six": "^1.9.0",
-    "tape-six-proc": "^1.2.9",
+    "tape-six": "^1.10.1",
+    "tape-six-proc": "^1.3.1",
+    "tape-six-puppeteer": "^1.1.0",
     "typescript": "^6.0.3"
   },
   "tape6": {
     "tests": [
-      "/tests/test-*.*js"
-    ]
+      "/tests/web/test-*.*js"
+    ],
+    "cli": [
+      "/tests/node/test-*.*js"
+    ],
+    "importmap": {
+      "imports": {
+        "tape-six": "/node_modules/tape-six/index.js",
+        "tape-six/": "/node_modules/tape-six/src/",
+        "stream-chain": "/node_modules/stream-chain/src/node/index.js",
+        "stream-chain/web": "/node_modules/stream-chain/src/web/index.js",
+        "stream-chain/core": "/node_modules/stream-chain/src/core/index.js",
+        "stream-chain/": "/node_modules/stream-chain/src/",
+        "stream-json": "/node_modules/stream-json/src/index.js",
+        "stream-json/": "/node_modules/stream-json/src/"
+      }
+    }
   }
 }

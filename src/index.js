@@ -1,11 +1,10 @@
 // @ts-self-types="./index.d.ts"
 
-'use strict';
+import emit from 'stream-json/utils/emit.js';
 
-const parser = require('./parser.js');
-const emit = require('stream-json/utils/emit.js');
+import parser from './parser.js';
 
 const make = options => emit(parser.asStream(options));
 
-module.exports = make;
-module.exports.parser = parser;
+export default make;
+export {make, parser};

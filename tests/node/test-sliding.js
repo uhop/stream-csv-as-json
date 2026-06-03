@@ -1,10 +1,10 @@
 import test from 'tape-six';
 import chain from 'stream-chain';
 
-import parser from '../src/parser.js';
+import parser from '../../src/parser.js';
 import Assembler from 'stream-json/assembler.js';
 
-import readString from './read-string.mjs';
+import {readString} from '../helpers.js';
 
 const table = [
   ['1', '', '', '"'],

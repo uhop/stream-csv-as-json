@@ -4,10 +4,10 @@ import zlib from 'node:zlib';
 import test from 'tape-six';
 import chain from 'stream-chain';
 
-import parser from '../src/parser.js';
+import parser from '../../src/parser.js';
 import Assembler from 'stream-json/assembler.js';
 
-import readString from './read-string.mjs';
+import {readString} from '../helpers.js';
 
 test.asPromise('parser: low-level tokens', (t, resolve, reject) => {
   const input = ',x,\r\n"""\r\n"',
@@ -67,7 +67,7 @@ test.asPromise('parser: simple rows', (t, resolve, reject) => {
 });
 
 test.asPromise('parser: tricky values from gzipped sample', (t, resolve, reject) => {
-  const samplePath = new URL('./sample.csv.gz', import.meta.url);
+  const samplePath = new URL('../data/sample.csv.gz', import.meta.url);
 
   const pipeline = chain([fs.createReadStream(samplePath), zlib.createGunzip(), parser.asStream()]);
 
@@ -83,9 +83,7 @@ test.asPromise('parser: tricky values from gzipped sample', (t, resolve, reject)
     if (data.name === 'stringValue') {
       const value = data.value;
       if (value) {
-        if (/[\u000A\u000D]/.test(value)) {
-          ++valuesWithCrLf;
-        }
+        if (/[\r\n]/.test(value)) ++valuesWithCrLf;
         if (/"/.test(value)) {
           ++valuesWithDoubleQuote;
         }
@@ -225,6 +223,27 @@ test.asPromise('parser: bare \\r\\n alone emits one empty array', (t, resolve, r
   pipeline.on('error', reject);
   pipeline.on('end', () => {
     t.deepEqual(result, [[]]);
+    resolve();
+  });
+});
+
+test.asPromise('parser: header longer than data row', (t, resolve, reject) => {
+  const input = 'a,b,c\r\n1,2\r\n',
+    result = [];
+
+  const pipeline = chain([readString(input), parser()]);
+  const asm = new Assembler();
+
+  pipeline.on('data', token => {
+    asm[token.name] && asm[token.name](token.value);
+    if (asm.done) result.push(asm.current);
+  });
+  pipeline.on('error', reject);
+  pipeline.on('end', () => {
+    t.deepEqual(result, [
+      ['a', 'b', 'c'],
+      ['1', '2']
+    ]);
     resolve();
   });
 });

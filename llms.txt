@@ -1,12 +1,12 @@
 # stream-csv-as-json
 
-> Micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. Parse CSV files far exceeding available memory using a SAX-inspired streaming token API. Companion to `stream-json`; uses the same token protocol. One dependency: `stream-json`.
+> Micro-library of stream components for building custom CSV processing pipelines with a minimal memory footprint, on Node.js or Web Streams. Parse CSV files far exceeding available memory using a SAX-inspired streaming token API. Companion to `stream-json`; uses the same token protocol. ESM-only, Node 22+. Runtime deps: `stream-chain`, `stream-json`.
 
 ## Install
 
 npm i stream-csv-as-json
 
-## Quick start
+## Quick start (Node.js)
 
 ```js
 import fs from 'node:fs';
@@ -14,14 +14,30 @@ import chain from 'stream-chain';
 import {parser} from 'stream-csv-as-json';
 import asObjects from 'stream-csv-as-json/as-objects.js';
 
-const pipeline = chain([
-  fs.createReadStream('data.csv'),
-  parser(),
-  asObjects()
-]);
+const pipeline = chain([fs.createReadStream('data.csv'), parser(), asObjects()]);
 
 pipeline.on('data', token => console.log(token));
 ```
+
+## Quick start (Web Streams)
+
+```js
+import {chain} from 'stream-chain/web';
+import parser from 'stream-csv-as-json/web/parser.js';
+import asObjects from 'stream-csv-as-json/web/as-objects.js';
+
+const pipeline = chain([response.body.pipeThrough(new TextDecoderStream()), parser(), asObjects()]);
+
+for await (const token of pipeline.readable) console.log(token);
+```
+
+## Entry points
+
+ESM-only. Three substrate flavors per component:
+
+- `stream-csv-as-json` (`.`) and per-component subpaths (`/parser.js`, `/as-objects.js`, `/stringer.js`) — Node-flavored; the factory carries both `.asStream` (Node `Duplex`) and `.asWebStream` (Web `{readable, writable}`).
+- `stream-csv-as-json/web` and `stream-csv-as-json/web/*.js` — browser-safe (no `node:*`); factories carry only `.asWebStream`.
+- `stream-csv-as-json/core/*.js` — substrate-free factory, no stream adapters attached.
 
 ## API
 
@@ -29,7 +45,7 @@ pipeline.on('data', token => console.log(token));
 
 `parser(options)` — factory returning a flushable function that produces `{name, value}` tokens. Accepts CRLF, LF, and bare CR row terminators; strips a leading UTF-8 BOM; throws on malformed quoted values.
 
-- `parser.asStream(options)` — returns a Duplex stream.
+- `parser.asStream(options)` — Node `Duplex`. `parser.asWebStream(options)` — Web `{readable, writable}`.
 - Options: `packStrings`/`packValues` (default: true), `streamStrings`/`streamValues` (default: true), `separator` (default: `','`).
 
 ```js
@@ -41,7 +57,7 @@ fs.createReadStream('data.csv')
 
 ### Main module
 
-The default export creates a parser Duplex stream with `emit()` applied:
+The default export creates a parser Duplex stream with `emit()` applied (Node-only event sugar). The Web entry's default returns `parser.asWebStream`.
 
 ```js
 import make from 'stream-csv-as-json';
@@ -52,11 +68,10 @@ stream.on('stringValue', val => { /* field value */ });
 
 ### asObjects
 
-`asObjects(options)` — factory returning a flushable function that converts array tokens to object tokens using the first row as field names. The header collector auto-detects the upstream parser's mode (stream tokens vs packed `stringValue`), so it works with any parser configuration.
+`asObjects(options)` — factory converting array tokens to object tokens using the first row as field names. The header collector auto-detects the upstream parser's mode (stream tokens vs packed `stringValue`).
 
-- `asObjects.asStream(options)` — returns a Duplex stream.
-- `asObjects.withParser(options)` — creates a pipeline with the CSV parser.
-- `asObjects.withParserAsStream(options)` — same, wrapped as a Duplex.
+- `asObjects.asStream(options)` / `asObjects.asWebStream(options)`.
+- `asObjects.withParser(options)` — pipeline with the CSV parser. `asObjects.withParserAsStream(options)` / `asObjects.withParserAsWebStream(options)`.
 - Options: `packKeys` (default: true), `streamKeys` (default: true), `fieldPrefix` (default: `'field'`).
 - `useStringValues` / `useValues` — deprecated no-ops kept for backward compatibility.
 
@@ -68,9 +83,9 @@ chain([parser(), asObjects(), token => console.log(token)]);
 
 ### stringer
 
-`stringer(options)` — factory returning a flushable function converting CSV token stream back to CSV text.
+`stringer(options)` — factory converting a CSV token stream back to CSV text.
 
-- `stringer.asStream(options)` — returns a Duplex stream.
+- `stringer.asStream(options)` / `stringer.asWebStream(options)`.
 - Options: `useStringValues`/`useValues` (default: false), `separator` (default: `','`), `rowTerminator` (default: `'\r\n'` per RFC 4180; override with `'\n'` for Unix-style output).
 
 ```js
@@ -80,7 +95,7 @@ chain([parser(), stringer(), fs.createWriteStream('output.csv')]);
 
 ## Token protocol
 
-The parser emits `{name, value}` tokens: `startArray`, `endArray`, `startString`, `endString`, `stringChunk`, `stringValue`. After `asObjects`: `startObject`, `endObject`, `startKey`, `endKey`, `keyValue`.
+The parser emits `{name, value}` tokens: `startArray`, `endArray`, `startString`, `endString`, `stringChunk`, `stringValue`. After `asObjects`: `startObject`, `endObject`, `startKey`, `endKey`, `keyValue`. Typed as discriminated unions (`parser.Token`, `asObjects.AsObjectsToken`).
 
 ## Common patterns
 
@@ -109,12 +124,7 @@ import chain from 'stream-chain';
 import {parser} from 'stream-csv-as-json';
 import asObjects from 'stream-csv-as-json/as-objects.js';
 
-chain([
-  fs.createReadStream('data.csv.gz'),
-  zlib.createGunzip(),
-  parser(),
-  asObjects()
-]);
+chain([fs.createReadStream('data.csv.gz'), zlib.createGunzip(), parser(), asObjects()]);
 ```
 
 ### CSV round-trip
@@ -125,12 +135,7 @@ import chain from 'stream-chain';
 import {parser} from 'stream-csv-as-json';
 import stringer from 'stream-csv-as-json/stringer.js';
 
-chain([
-  fs.createReadStream('input.csv'),
-  parser(),
-  stringer(),
-  fs.createWriteStream('output.csv')
-]);
+chain([fs.createReadStream('input.csv'), parser(), stringer(), fs.createWriteStream('output.csv')]);
 ```
 
 ## Links

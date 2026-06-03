@@ -3,7 +3,7 @@
 [npm-img]: https://img.shields.io/npm/v/stream-csv-as-json.svg
 [npm-url]: https://npmjs.org/package/stream-csv-as-json
 
-`stream-csv-as-json` is a micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. It can parse CSV files far exceeding available memory, streaming individual primitives using a SAX-inspired API.
+`stream-csv-as-json` is a micro-library of stream components for building custom CSV processing pipelines with a minimal memory footprint, on **Node.js or Web Streams**. It can parse CSV files far exceeding available memory, streaming individual primitives using a SAX-inspired API.
 
 `stream-csv-as-json` is a companion project for [stream-json](https://www.npmjs.com/package/stream-json) and [stream-chain](https://www.npmjs.com/package/stream-chain). It uses the **same token protocol** (`{name, value}` tokens) and works seamlessly with `stream-json` filters, streamers, and general infrastructure. This means you can combine CSV parsing with `stream-json` utilities like `streamValues`, `Filter`, `Pick`, and `Ignore` for powerful data processing pipelines.
 
@@ -15,7 +15,7 @@
 - **[asObjects](https://github.com/uhop/stream-csv-as-json/wiki/as-objects)** — uses the first row as field names, converts subsequent rows to object tokens.
 - **[stringer](https://github.com/uhop/stream-csv-as-json/wiki/stringer)** — converts a CSV token stream back to CSV text.
 
-All components are building blocks for flexible pipelines. They can be combined with custom functions, [stream-chain](https://www.npmjs.com/package/stream-chain), and [stream-json](https://www.npmjs.com/package/stream-json) utilities.
+Every component runs on both substrates: `.asStream()` returns a Node.js `Duplex`, `.asWebStream()` returns a Web `TransformStream`-shaped `{readable, writable}` pair. All components are building blocks for flexible pipelines, combinable with custom functions, [stream-chain](https://www.npmjs.com/package/stream-chain), and [stream-json](https://www.npmjs.com/package/stream-json) utilities.
 
 ## Installation
 
@@ -23,9 +23,9 @@ All components are building blocks for flexible pipelines. They can be combined 
 npm install stream-csv-as-json
 ```
 
-## Quick start
+Requires **Node.js 22+**. The package is **ESM-only**.
 
-Examples use ESM (`import`). CommonJS (`require`) is also supported — see [Modules](#modules) below.
+## Quick start (Node.js)
 
 ```js
 import fs from 'node:fs';
@@ -53,6 +53,22 @@ pipeline.on('data', data => {
 pipeline.on('end', () => console.log(`Found ${counter} matching rows.`));
 ```
 
+### Quick start (Web Streams)
+
+Import the browser-safe Web entry from `stream-csv-as-json/web` (and `stream-chain/web`). The same component factories build the pipeline — `chain()` wraps them for whichever substrate it was imported from.
+
+```js
+import {chain} from 'stream-chain/web';
+import parser from 'stream-csv-as-json/web/parser.js';
+import asObjects from 'stream-csv-as-json/web/as-objects.js';
+
+const pipeline = chain([response.body.pipeThrough(new TextDecoderStream()), parser(), asObjects()]);
+
+for await (const token of pipeline.readable) {
+  if (token.name === 'endObject') console.log('row');
+}
+```
+
 ### Using `.withParser()` for a combined pipeline
 
 ```js
@@ -65,7 +81,7 @@ const pipeline = chain([fs.createReadStream('data.csv'), asObjects.withParser()]
 pipeline.on('data', token => console.log(token));
 ```
 
-### Using `.asStream()` for direct piping
+### Using `.asStream()` / `.asWebStream()` for direct piping
 
 ```js
 import fs from 'node:fs';
@@ -76,36 +92,33 @@ fs.createReadStream('data.csv')
   .on('data', token => console.log(token));
 ```
 
-## Modules
+## Entry points
 
-This package supports both ESM (`import`) and CommonJS (`require`).
-
-**ESM (recommended):**
+ESM-only. The Node entry (`.`) and per-component subpaths carry both `.asStream` and `.asWebStream`; the `/web` entry is browser-safe (no `node:*`); the `/core` entry is the substrate-free factory with no adapters.
 
 ```js
+// Node-flavored (Duplex + Web adapters attached)
 import {parser} from 'stream-csv-as-json';
 import asObjects from 'stream-csv-as-json/as-objects.js';
 import stringer from 'stream-csv-as-json/stringer.js';
+
+// Web Streams (browser-safe)
+import parser from 'stream-csv-as-json/web/parser.js';
+import webMake from 'stream-csv-as-json/web';
+
+// Substrate-free factory (no stream adapters)
+import parser from 'stream-csv-as-json/core/parser.js';
 ```
-
-**CommonJS:**
-
-```js
-const {parser} = require('stream-csv-as-json');
-const asObjects = require('stream-csv-as-json/as-objects.js');
-const stringer = require('stream-csv-as-json/stringer.js');
-```
-
-See the full documentation in the [Wiki](https://github.com/uhop/stream-csv-as-json/wiki).
 
 ## API at a glance
 
-| Module                             | Factory              | Stream wrapper                              |
-| ---------------------------------- | -------------------- | ------------------------------------------- |
-| `stream-csv-as-json`               | `make(options)`      | Returns a Duplex stream with event emission |
-| `stream-csv-as-json/parser.js`     | `parser(options)`    | `parser.asStream(options)`                  |
-| `stream-csv-as-json/stringer.js`   | `stringer(options)`  | `stringer.asStream(options)`                |
-| `stream-csv-as-json/as-objects.js` | `asObjects(options)` | `asObjects.asStream(options)`               |
+| Module                             | Factory              | Node wrapper                  | Web wrapper                      |
+| ---------------------------------- | -------------------- | ----------------------------- | -------------------------------- |
+| `stream-csv-as-json`               | `make(options)`      | Duplex with event emission    | —                                |
+| `stream-csv-as-json/web`           | `make(options)`      | —                             | `{readable, writable}` pair      |
+| `stream-csv-as-json/parser.js`     | `parser(options)`    | `parser.asStream(options)`    | `parser.asWebStream(options)`    |
+| `stream-csv-as-json/stringer.js`   | `stringer(options)`  | `stringer.asStream(options)`  | `stringer.asWebStream(options)`  |
+| `stream-csv-as-json/as-objects.js` | `asObjects(options)` | `asObjects.asStream(options)` | `asObjects.asWebStream(options)` |
 
 ### parser options
 
@@ -135,7 +148,7 @@ See the full documentation in the [Wiki](https://github.com/uhop/stream-csv-as-j
 
 ## TypeScript
 
-TypeScript declarations (`.d.ts`) are included and provide full type information for all modules.
+TypeScript declarations (`.d.ts`) are included for all modules. Tokens are typed as discriminated unions (`parser.Token`, `asObjects.AsObjectsToken`), so narrowing on `token.name` tightens `token.value` per arm.
 
 ## License
 
@@ -143,6 +156,7 @@ BSD-3-Clause
 
 ## Release history
 
+- 3.0.0 _ESM-only (Node 22+). Adds Web Streams support via the `/web` entry and `.asWebStream()` on every component, on `stream-chain` 4.x / `stream-json` 3.x. Source split into substrate-free `core/` + Node `src/` + `web/`. Discriminated-union token types. See the [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x)._
 - 2.1.0 _Configurable `rowTerminator` on `stringer`. `asObjects` header now auto-detects parser mode. Minor bugfixes._
 - 2.0.1 _Added direct dependency on `stream-chain`. Documentation updates._
 - 2.0.0 _Major rewrite: functional API (stream-chain 3.x), source in `src/`, TypeScript declarations, tape-six tests. See [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-1.x-to-2.x)._

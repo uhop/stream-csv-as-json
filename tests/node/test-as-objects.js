@@ -1,11 +1,11 @@
 import test from 'tape-six';
 import chain from 'stream-chain';
 
-import parser from '../src/parser.js';
-import asObjects from '../src/as-objects.js';
+import parser from '../../src/parser.js';
+import asObjects from '../../src/as-objects.js';
 import Assembler from 'stream-json/assembler.js';
 
-import readString from './read-string.mjs';
+import {readString} from '../helpers.js';
 
 test.asPromise('as-objects: simple', (t, resolve, reject) => {
   const input = 'alpha,beta,gamma\r\n1,,"",""""\r\n2,three,"four",five\r\n',

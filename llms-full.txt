@@ -1,26 +1,27 @@
 # stream-csv-as-json
 
-> A micro-library of Node.js stream components for creating custom CSV processing pipelines with a minimal memory footprint. It can parse CSV files far exceeding available memory streaming individual primitives using a SAX-inspired API. One runtime dependency: `stream-json`. Companion project to `stream-json` — uses the same token protocol, integrates with its filters, streamers, and utilities. Works with `stream-chain` for pipeline composition.
+> A micro-library of stream components for building custom CSV processing pipelines with a minimal memory footprint, on Node.js or Web Streams. It can parse CSV files far exceeding available memory streaming individual primitives using a SAX-inspired API. ESM-only, Node 22+. Runtime dependencies: `stream-chain` (pipeline composition + stream adapters) and `stream-json` (token infrastructure: `Assembler`, `emit`). Companion project to `stream-json` — uses the same token protocol, integrates with its filters, streamers, and utilities.
 
 - Streaming SAX-inspired CSV parser producing `{name, value}` tokens
 - Parse CSV files far exceeding available memory
-- Individual field values can be streamed piece-wise
+- Runs on both Node.js streams and Web Streams (browser-safe `/web` entry)
+- Individual field values can be streamed piece-wise or packed into single tokens
 - asObjects converts header + data rows into object token streams
 - stringer converts token streams back to CSV text
 - Token protocol compatible with `stream-json` — use its filters, streamers, and utilities downstream
-- Proper backpressure handling via `stream-chain` (flushable functions, `gen()`, `asStream()`)
-- Components are factory functions returning flushable closures
-- TypeScript declarations included
+- Proper backpressure handling via `stream-chain` (flushable functions, `gen()`, `asStream()`/`asWebStream()`)
+- Components are substrate-free factory functions returning flushable closures, with stream adapters attached per entry
+- TypeScript declarations included; tokens typed as discriminated unions
 
 ## Quick start
 
-Install:
+Install (requires Node.js 22+):
 
 ```bash
 npm i stream-csv-as-json
 ```
 
-Stream a huge CSV file as token objects:
+Stream a huge CSV file as token objects (Node.js):
 
 ```js
 import fs from 'node:fs';
@@ -38,37 +39,58 @@ pipeline.on('data', token => console.log(token));
 pipeline.on('end', () => console.log('done'));
 ```
 
-## Importing
+The same pipeline on Web Streams:
 
 ```js
-// Main API (parser + emit)
+import {chain} from 'stream-chain/web';
+import parser from 'stream-csv-as-json/web/parser.js';
+import asObjects from 'stream-csv-as-json/web/as-objects.js';
+
+const pipeline = chain([response.body.pipeThrough(new TextDecoderStream()), parser(), asObjects()]);
+
+for await (const token of pipeline.readable) console.log(token);
+```
+
+## Entry points and substrates
+
+ESM-only (`"type": "module"`, Node 22+). Source is split into three layers, exposed through the `exports` map (`.`, `./web`, `./*`):
+
+- **`core/`** — substrate-free factories. `import parser from 'stream-csv-as-json/core/parser.js'` returns the flushable factory with **no** `.asStream` / `.asWebStream` adapters. Imports only `stream-chain/core` — pulls in no `node:*` and no Web globals.
+- **Node (`.` and per-component subpaths)** — `stream-csv-as-json`, `stream-csv-as-json/parser.js`, etc. Re-export the core factory with **both** `.asStream` (Node `Duplex`, via `stream-chain`) and `.asWebStream` (Web pair, via `stream-chain/web`) attached.
+- **`web/`** — `stream-csv-as-json/web`, `stream-csv-as-json/web/parser.js`, etc. Browser-safe (no `node:*`); the factory carries only `.asWebStream`.
+
+```js
+// Node-flavored main API (parser + emit)
 import make from 'stream-csv-as-json';
 import {parser} from 'stream-csv-as-json';
 
-// Parser
+// Node-flavored components
 import parser from 'stream-csv-as-json/parser.js';
-
-// asObjects
 import asObjects from 'stream-csv-as-json/as-objects.js';
-
-// stringer
 import stringer from 'stream-csv-as-json/stringer.js';
-
-// with-parser utility
 import withParser from 'stream-csv-as-json/utils/with-parser.js';
+
+// Web Streams entry (browser-safe)
+import webMake from 'stream-csv-as-json/web';
+import parser from 'stream-csv-as-json/web/parser.js';
+
+// Substrate-free factory (no adapters)
+import parser from 'stream-csv-as-json/core/parser.js';
 ```
+
+`chain()` from `stream-chain` (Node) or `stream-chain/web` (Web) auto-wraps a returned flushable for its substrate, so component factories take identical call sites — `chain([source, parser(), stringer()])` works on either substrate.
 
 ## Token protocol
 
 The parser emits `{name, value}` tokens. All downstream components operate on this protocol. The tokens are compatible with `stream-json`.
 
-| Token name    | Value  | Meaning                    |
-| ------------- | ------ | -------------------------- |
-| `startArray`  | —      | Start of a CSV row         |
-| `endArray`    | —      | End of a CSV row           |
-| `startString` | —      | Start of a field value     |
-| `endString`   | —      | End of a field value       |
-| `stringChunk` | string | Piece of a field value     |
+| Token name    | Value  | Meaning                     |
+| ------------- | ------ | --------------------------- |
+| `startArray`  | —      | Start of a CSV row          |
+| `endArray`    | —      | End of a CSV row            |
+| `startString` | —      | Start of a field value      |
+| `endString`   | —      | End of a field value        |
+| `stringChunk` | string | Piece of a field value      |
 | `stringValue` | string | Packed complete field value |
 
 By default, the parser emits both streamed tokens (`startString`/`stringChunk`/`endString`) and packed tokens (`stringValue`). This is controlled by options.
@@ -83,9 +105,11 @@ After `asObjects`, additional tokens appear:
 | `endKey`      | —      | End of field name            |
 | `keyValue`    | string | Packed field name            |
 
+Token types are exported as discriminated unions: `parser.Token` (the CSV subset above) and `asObjects.AsObjectsToken` (the parser tokens plus the object/key tokens). Narrowing on `token.name` tightens `token.value` per arm.
+
 ## Main module
 
-The default export creates a Parser Duplex stream with `emit()` applied (from `stream-json/utils/emit`):
+The Node default export creates a Parser Duplex stream with `emit()` applied (from `stream-json/utils/emit`), so the returned stream emits named events for each token type:
 
 ```js
 import make from 'stream-csv-as-json';
@@ -96,15 +120,15 @@ stream.on('stringValue', val => { /* field value */ });
 stream.on('endArray', () => { /* row end */ });
 ```
 
-Named export: `parser` (the factory function).
+Named export: `parser` (the factory function). The `emit()` event sugar is Node-only; the Web entry's default export is `parser.asWebStream` (returns a `{readable, writable}` pair).
 
 ## Parser API
 
 `parser(options)` — factory returning a flushable function that consumes CSV text and produces `{name, value}` tokens. Composed with `fixUtf8Stream()` via `gen()`.
 
 - `parser(options)` — returns a flushable function for use in `chain()`.
-- `parser.asStream(options)` — returns a Duplex stream (writableObjectMode: false, readableObjectMode: true).
-- `parser.parser` — self-reference for destructuring.
+- `parser.asStream(options)` — returns a Node `Duplex` stream (writableObjectMode: false, readableObjectMode: true).
+- `parser.asWebStream(options)` — returns a Web `{readable, writable}` pair.
 
 Options:
 
@@ -127,7 +151,7 @@ Errors:
 - `"Parser cannot parse input: expected a quoted value"` — input ends mid-quote (unterminated quoted field).
 - `"Parser cannot parse input: unexpected character after a quoted value"` — content other than the separator, CR, LF, or another `"` appears immediately after a closing `"`.
 
-Errors propagate as the stream's `'error'` event.
+Errors propagate as the stream's `'error'` event (Node) or reject the readable (Web).
 
 ```js
 import parser from 'stream-csv-as-json/parser.js';
@@ -153,15 +177,26 @@ const pipeline = chain([
 ]);
 ```
 
+On Web Streams:
+
+```js
+import {chain} from 'stream-chain/web';
+import parser from 'stream-csv-as-json/web/parser.js';
+
+const pipeline = chain([webReadable, parser()]);
+for await (const token of pipeline.readable) console.log(token.name, token.value);
+```
+
 ## AsObjects API
 
 `asObjects(options)` — factory returning a flushable function that uses the first CSV row as field names and converts subsequent rows from array tokens to object tokens.
 
 - `asObjects(options)` — returns a flushable function for use in `chain()`.
-- `asObjects.asStream(options)` — returns a Duplex stream (objectMode both sides).
-- `asObjects.asObjects` — self-reference for destructuring.
+- `asObjects.asStream(options)` — returns a Node `Duplex` stream (objectMode both sides).
+- `asObjects.asWebStream(options)` — returns a Web `{readable, writable}` pair.
 - `asObjects.withParser(options)` — creates a pipeline of CSV parser + asObjects via `gen()`.
-- `asObjects.withParserAsStream(options)` — same, wrapped as a Duplex stream.
+- `asObjects.withParserAsStream(options)` — same, wrapped as a Node `Duplex` stream.
+- `asObjects.withParserAsWebStream(options)` — same, wrapped as a Web `{readable, writable}` pair.
 
 Options:
 
@@ -200,6 +235,7 @@ With `withParser` shortcut:
 
 ```js
 import fs from 'node:fs';
+import chain from 'stream-chain';
 import asObjects from 'stream-csv-as-json/as-objects.js';
 
 const pipeline = chain([
@@ -218,11 +254,10 @@ import {parser} from 'stream-csv-as-json';
 import asObjects from 'stream-csv-as-json/as-objects.js';
 
 // If headers are: name,age and data has 4 columns:
-// Fields become: name, age, field2, field3
+// Fields become: name, age, col2, col3
 const pipeline = chain([
   parser(),
-  asObjects({fieldPrefix: 'col'}),
-  // Fields become: name, age, col2, col3
+  asObjects({fieldPrefix: 'col'})
 ]);
 ```
 
@@ -231,8 +266,8 @@ const pipeline = chain([
 `stringer(options)` — factory returning a flushable function that converts a CSV token stream back to CSV text.
 
 - `stringer(options)` — returns a flushable function for use in `chain()`.
-- `stringer.asStream(options)` — returns a Duplex stream (writableObjectMode: true, readableObjectMode: false).
-- `stringer.stringer` — self-reference for destructuring.
+- `stringer.asStream(options)` — returns a Node `Duplex` stream (writableObjectMode: true, readableObjectMode: false).
+- `stringer.asWebStream(options)` — returns a Web `{readable, writable}` pair.
 
 Options:
 
@@ -269,6 +304,13 @@ chain([
   fs.createWriteStream('output.csv')
 ]);
 ```
+
+## with-parser utility
+
+`stream-csv-as-json/utils/with-parser.js` (Node) / `stream-csv-as-json/web/utils/with-parser.js` (Web) — composes the CSV parser with another component factory via `gen()`. Most components expose `.withParser()` built on this utility.
+
+- `withParser(fn, options)` — returns a flushable composing `parser(options)` then `fn(options)`.
+- `withParser.asStream(fn, options)` — Node `Duplex`. `withParser.asWebStream(fn, options)` — Web pair.
 
 ## Common patterns
 
@@ -339,7 +381,22 @@ chain([
 ]);
 ```
 
-### Event-based processing
+### Web Streams in the browser
+
+```js
+import {chain} from 'stream-chain/web';
+import parser from 'stream-csv-as-json/web/parser.js';
+import asObjects from 'stream-csv-as-json/web/as-objects.js';
+
+const response = await fetch('/data.csv');
+const pipeline = chain([response.body.pipeThrough(new TextDecoderStream()), parser(), asObjects()]);
+
+for await (const token of pipeline.readable) {
+  if (token.name === 'keyValue') console.log('field:', token.value);
+}
+```
+
+### Event-based processing (Node)
 
 ```js
 import fs from 'node:fs';

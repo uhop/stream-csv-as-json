@@ -1,25 +1,22 @@
-/// <reference types="node" />
-
-import {Duplex, DuplexOptions} from 'node:stream';
 import {Flushable, Many, none} from 'stream-chain/defs.js';
 import type {
   AsObjectsOptions as CoreAsObjectsOptions,
   AsObjectsToken as CoreAsObjectsToken,
   AsObjectsTokenName as CoreAsObjectsTokenName
-} from './core/as-objects.js';
+} from '../core/as-objects.js';
 import type {ParserOptions} from './parser.js';
 
 /**
- * Creates a flushable function that converts a CSV token stream (arrays of strings)
- * into an object token stream, using the first row as field names.
+ * Web entry — converts a CSV token stream into an object token stream using the
+ * first row as field names.
  *
- * Node-flavored entry: the returned factory has `.asStream` / `.asWebStream` plus the
- * `.withParser` / `.withParserAsStream` / `.withParserAsWebStream` convenience pipelines.
+ * The returned factory has `.asWebStream` plus the `.withParser` /
+ * `.withParserAsWebStream` convenience pipelines. Browser-safe.
  *
  * @param options - AsObjects configuration.
  * @returns A flushable function for use in a `chain()` pipeline.
  */
-declare function asObjects(options?: asObjects.AsObjectsOptions): ReturnType<typeof import('./core/as-objects.js').default>;
+declare function asObjects(options?: asObjects.AsObjectsOptions): ReturnType<typeof import('../core/as-objects.js').default>;
 
 declare namespace asObjects {
   /** Tokens emitted by `asObjects` (parser tokens plus object/key tokens). */
@@ -27,17 +24,13 @@ declare namespace asObjects {
   /** Closed set of `asObjects` token-type names. */
   export type AsObjectsTokenName = CoreAsObjectsTokenName;
 
-  /** Options for AsObjects. Extends Node.js `DuplexOptions`. */
-  export interface AsObjectsOptions extends CoreAsObjectsOptions, DuplexOptions {}
+  /** Options for AsObjects. */
+  export interface AsObjectsOptions extends CoreAsObjectsOptions {}
 
-  /** Creates an AsObjects function as a Node Duplex stream (object mode in/out). */
-  export function asStream(options?: AsObjectsOptions): Duplex;
   /** Creates an AsObjects function as a Web `TransformStream`-shaped pair. */
   export function asWebStream(options?: AsObjectsOptions): {readable: ReadableStream; writable: WritableStream};
   /** Creates a CSV parser + asObjects pipeline (substrate-free). */
   export function withParser(options?: AsObjectsOptions & ParserOptions): Flushable<string, Many<AsObjectsToken> | typeof none>;
-  /** Creates a CSV parser + asObjects pipeline wrapped as a Node Duplex stream. */
-  export function withParserAsStream(options?: AsObjectsOptions & ParserOptions): Duplex;
   /** Creates a CSV parser + asObjects pipeline wrapped as a Web `TransformStream`-shaped pair. */
   export function withParserAsWebStream(options?: AsObjectsOptions & ParserOptions): {readable: ReadableStream; writable: WritableStream};
 }

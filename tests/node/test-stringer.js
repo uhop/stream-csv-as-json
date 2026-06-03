@@ -1,10 +1,10 @@
 import test from 'tape-six';
 import chain from 'stream-chain';
 
-import parser from '../src/parser.js';
-import stringer from '../src/stringer.js';
+import parser from '../../src/parser.js';
+import stringer from '../../src/stringer.js';
 
-import readString from './read-string.mjs';
+import {readString} from '../helpers.js';
 
 const toCsv = array => array.map(row => row.map(value => (/[,\r\n"]/.test(value) ? '"' + value.replace(/"/g, '""') + '"' : value)).join(',')).join('\r\n');
 
