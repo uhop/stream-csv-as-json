@@ -94,7 +94,7 @@ fs.createReadStream('data.csv')
 
 ## Entry points
 
-ESM-only. The Node entry (`.`) and per-component subpaths carry both `.asStream` and `.asWebStream`; the `/web` entry is browser-safe (no `node:*`); the `/core` entry is the substrate-free factory with no adapters.
+**ESM:** the Node entry (`.`) and per-component subpaths carry both `.asStream` and `.asWebStream`; the `/web` entry is browser-safe (no `node:*`); the `/core` entry is the substrate-free factory with no adapters.
 
 ```js
 // Node-flavored (Duplex + Web adapters attached)
@@ -109,6 +109,8 @@ import webMake from 'stream-csv-as-json/web';
 // Substrate-free factory (no stream adapters)
 import parser from 'stream-csv-as-json/core/parser.js';
 ```
+
+**CommonJS:** the package is ESM-only, but CommonJS consumers can still `require()` it on Node.js ≥ 22.12 (via Node's `require(ESM)`). Destructure the named exports exactly as in the ESM imports above — every default export has a named mirror, so the parser is a named `parser`, not a bare-callable default. See the [migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x) for the exact `require()` shape.
 
 ## API at a glance
 
@@ -172,7 +174,7 @@ BSD-3-Clause
 
 ## Release history
 
-- 3.0.0 _ESM-only (Node 22+). Web Streams support. Node-only file-edge components (`parseFile`, `stringerToFile`). Improved parser. See the [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x)._
+- 3.0.0 _ESM-native. Web Streams support. Node-only file-edge components (`parseFile`, `stringerToFile`). Improved parser. See the [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x)._
 - 2.1.0 _Configurable `rowTerminator` on `stringer`. `asObjects` header now auto-detects parser mode. Minor bugfixes._
 - 2.0.1 _Added direct dependency on `stream-chain`. Documentation updates._
 - 2.0.0 _Major rewrite: functional API (stream-chain 3.x), source in `src/`, TypeScript declarations, tape-six tests. See [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-1.x-to-2.x)._
