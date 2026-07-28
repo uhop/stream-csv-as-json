@@ -24,10 +24,10 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the module map and dependency graph
 
 Touching `src/core/` or `src/web/` also warrants `npm run test:browser`, which runs the `tests/web/` suite in real headless chromium — the only check that actually proves nothing browser-facing imports `node:*`, since Node, Bun, and Deno all expose `node:` and a leak passes there silently. It is a development-only script and is deliberately absent from CI.
 
-The runner is a normal devDependency, but this repo's `.npmrc` sets `ignore-scripts=true`, so installing it never downloads a browser. Install Chrome once, by hand:
+The runner is a normal devDependency, but `package.json`'s `allowScripts` block disables its install scripts, so installing it never downloads a browser. Install Chrome once, by hand:
 
 ```bash
-npx puppeteer browsers install chrome
+npm run browser:install
 ```
 
 ## Code style
