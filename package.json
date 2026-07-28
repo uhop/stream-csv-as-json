@@ -10,9 +10,6 @@
     "./web": "./src/web/index.js",
     "./*": "./src/*"
   },
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
     "test": "tape6 --flags FO",
     "test:bun": "tape6-bun --flags FO",
@@ -57,8 +54,6 @@
     "url": "https://github.com/uhop/stream-csv-as-json/issues"
   },
   "homepage": "https://github.com/uhop/stream-csv-as-json#readme",
-  "llms": "https://raw.githubusercontent.com/uhop/stream-csv-as-json/master/llms.txt",
-  "llmsFull": "https://raw.githubusercontent.com/uhop/stream-csv-as-json/master/llms-full.txt",
   "files": [
     "src",
     "LICENSE",

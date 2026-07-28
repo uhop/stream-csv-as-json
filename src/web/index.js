@@ -5,4 +5,4 @@ import parser from './parser.js';
 const make = parser.asWebStream;
 
 export default make;
-export {parser};
+export {make, parser};

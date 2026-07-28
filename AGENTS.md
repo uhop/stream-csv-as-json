@@ -10,7 +10,7 @@ For detailed usage docs and API references see the [wiki](https://github.com/uho
 This project uses a git submodule for the wiki:
 
 ```bash
-git clone --recursive git@github.com:uhop/stream-csv-as-json.git
+git clone --recursive https://github.com/uhop/stream-csv-as-json.git
 cd stream-csv-as-json
 npm install
 ```
@@ -77,6 +77,7 @@ stream-csv-as-json/
 - Semicolons are enforced by Prettier (default `semi: true`).
 - Source uses `import`/`export`. Each `.js` file has a `// @ts-self-types` header pointing to its `.d.ts`. No JSDoc type annotations in `.js` beyond the `@ts-self-types` line and minimal `@type` casts.
 - Shortest correct import form: default import for a single default-bearing symbol, all-named when pulling several from one module, never mixed `import X, {Y}`.
+- **No comments that narrate the code.** Comments are short _why_-markers only: a non-trivial decision or constraint, an algorithm reference, or JSDoc where it is required (`.d.ts` sidecars). Never a restatement of _what_ the code does. Strip narrating comments in files you already touch.
 
 ## Critical rules
 
@@ -85,7 +86,6 @@ stream-csv-as-json/
 - **Browser safety is load-bearing.** Nothing reachable from `src/core/*`, `src/web/*`, `tests/web/*`, or `tests/web-helpers.js` may import `node:*`. Web tests use `stream-json/web/assembler.js`, never `stream-json/assembler.js`. Enforced by convention plus a grep audit (no `node:` imports under `src/core`, `src/web`, `tests/web`, `tests/web-helpers.js`) — there is no automated real-browser run (the puppeteer runner was dropped; its Chrome download was flaky in CI).
 - **No CJS export artifacts.** Don't attach `x.x = x` self-aliases (e.g. `parser.parser = parser`) to exported functions — pure ESM uses `export default X; export {X}` (the named-export mirror) for both import forms; `import {parser} from '…'` already works. The `.asStream` / `.asWebStream` adapter methods are real API, not artifacts.
 - **Do not modify or delete test expectations** without understanding why they changed.
-- **Do not add comments or remove comments** unless explicitly asked.
 - **Token-based architecture.** The parser produces `{name, value}` tokens compatible with `stream-json`'s token protocol. All components operate on this protocol.
 - **Backpressure is handled by `stream-chain`.** Components are flushable functions composed via `gen()` and wrapped with `asStream()` / `asWebStream()`.
 

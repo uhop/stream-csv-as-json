@@ -17,6 +17,8 @@
 
 Every component runs on both substrates: `.asStream()` returns a Node.js `Duplex`, `.asWebStream()` returns a Web `TransformStream`-shaped `{readable, writable}` pair. All components are building blocks for flexible pipelines, combinable with custom functions, [stream-chain](https://www.npmjs.com/package/stream-chain), and [stream-json](https://www.npmjs.com/package/stream-json) utilities.
 
+Full documentation is in the **[wiki](https://github.com/uhop/stream-csv-as-json/wiki)** — browse the [index](https://github.com/uhop/stream-csv-as-json/wiki/Home), or [search it](https://uhop.github.io/wiki-search/app/?wiki=uhop/stream-csv-as-json) by name.
+
 ## Installation
 
 ```bash
