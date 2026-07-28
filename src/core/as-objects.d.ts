@@ -21,12 +21,7 @@ declare namespace asObjects {
    * the object/key tokens that turn each row into an object. Discriminated over `name`.
    */
   export type AsObjectsToken =
-    | ParserToken
-    | {name: 'startObject'}
-    | {name: 'endObject'}
-    | {name: 'startKey'}
-    | {name: 'endKey'}
-    | {name: 'keyValue'; value: string};
+    ParserToken | {name: 'startObject'} | {name: 'endObject'} | {name: 'startKey'} | {name: 'endKey'} | {name: 'keyValue'; value: string};
 
   /** Closed set of `asObjects` token-type names. Equivalent to `AsObjectsToken['name']`. */
   export type AsObjectsTokenName = AsObjectsToken['name'];
