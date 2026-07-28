@@ -22,6 +22,14 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the module map and dependency graph
 4. Type-check `.d.ts`: `npm run ts-check`
 5. JS lint (`src/**/*.js`): `npm run js-check`
 
+Touching `src/core/` or `src/web/` also warrants `npm run test:browser`, which runs the `tests/web/` suite in real headless chromium — the only check that actually proves nothing browser-facing imports `node:*`, since Node, Bun, and Deno all expose `node:` and a leak passes there silently. It is a development-only script and is deliberately absent from CI.
+
+The runner is a normal devDependency, but this repo's `.npmrc` sets `ignore-scripts=true`, so installing it never downloads a browser. Install Chrome once, by hand:
+
+```bash
+npx puppeteer browsers install chrome
+```
+
 ## Code style
 
 - ESM (`import`) throughout — source and tests (`"type": "module"`). No CommonJS, no transpilation.
