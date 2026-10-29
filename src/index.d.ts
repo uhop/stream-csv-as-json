@@ -1,7 +1,7 @@
 /// <reference types="node" />
 
 import {Duplex} from 'node:stream';
-import parser, {ParserOptions} from './parser.js';
+import {parser, ParserOptions} from './parser.js';
 
 /**
  * Creates a CSV parser stream decorated with `emit()`, so tokens are emitted as events.

@@ -137,11 +137,12 @@ exports exactly as in the ESM imports above — every default export has a named
 
 ### parser options
 
-| Option                           | Default | Description                                         |
-| -------------------------------- | ------- | --------------------------------------------------- |
-| `packStrings` / `packValues`     | `true`  | Emit `stringValue` tokens with the complete value   |
-| `streamStrings` / `streamValues` | `true`  | Emit `startString`/`stringChunk`/`endString` tokens |
-| `separator`                      | `','`   | Field separator character                           |
+| Option                           | Default | Description                                           |
+| -------------------------------- | ------- | ----------------------------------------------------- |
+| `packStrings` / `packValues`     | `true`  | Emit `stringValue` tokens with the complete value     |
+| `streamStrings` / `streamValues` | `true`  | Emit `startString`/`stringChunk`/`endString` tokens   |
+| `separator`                      | `','`   | Field separator character                             |
+| `ignoreBOM`                      | `false` | Keep a leading byte-order mark instead of dropping it |
 
 ### stringer options
 
@@ -177,7 +178,8 @@ import stringerToFile from 'stream-csv-as-json/file/stringer.js';
 await drain(pipe(parseFile(), stringerToFile('out.csv', {useValues: true}))('in.csv'));
 ```
 
-`parseFile(options)` adds `readBlockSize` (default 64 KB); `stringerToFile(path, options)` adds `writeBlockSize` (default 1 MB).
+`parseFile(options)` adds `readBlockSize` (default 64 KB); `stringerToFile(path, options)` adds `writeBlockSize` (default 1 MB). The sink's `close()` releases
+the file handle when a pipeline ends without a flush.
 
 ## TypeScript
 

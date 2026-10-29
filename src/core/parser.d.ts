@@ -7,7 +7,8 @@ import {Flushable, Many, none} from 'stream-chain/defs.js';
  * Individual field values can be streamed piece-wise or packed into single tokens.
  *
  * Row terminator acceptance is lenient — CRLF (RFC 4180), LF, and bare CR all work.
- * A leading UTF-8 BOM (`U+FEFF`) at the start of the input is stripped.
+ * One leading byte-order mark (`U+FEFF`) is dropped, whether the input is bytes or strings,
+ * unless `ignoreBOM` is set. A surrogate pair is never split between two `stringChunk` tokens.
  *
  * This is the pure, stream-agnostic factory — no `.asStream` / `.asWebStream` adapters
  * attached. For the Node-flavored entry (with both adapters) import from
@@ -51,13 +52,24 @@ declare namespace parser {
     streamValues?: boolean;
     /** Field separator character. Default: `','`. */
     separator?: string;
+    /** Keep a byte-order mark (U+FEFF) that starts the input instead of dropping it. Default: `false`. */
+    ignoreBOM?: boolean;
   }
 }
+
+/**
+ * The tokenizer behind `parser()`, without its `fixUtf8Stream()` front: it consumes strings only,
+ * and a leading byte-order mark stays in the first field (`ignoreBOM` has no effect here).
+ *
+ * @param options - Parser configuration.
+ * @returns A flushable function for use in a `chain()` pipeline.
+ */
+declare function csvParser(options?: parser.ParserOptions): Flushable<string, Many<parser.Token> | typeof none>;
 
 type Token = parser.Token;
 type TokenName = parser.TokenName;
 type ParserOptions = parser.ParserOptions;
 
 export default parser;
-export {parser};
+export {parser, csvParser};
 export type {Token, TokenName, ParserOptions};

@@ -3,8 +3,9 @@ import zlib from 'node:zlib';
 
 import test from 'tape-six';
 import chain from 'stream-chain';
+import {getManyValues, none} from 'stream-chain/core';
 
-import parser from '../../src/parser.js';
+import {parser, csvParser} from '../../src/parser.js';
 import Assembler from 'stream-json/assembler.js';
 
 import {readString} from '../helpers.js';
@@ -269,6 +270,45 @@ test.asPromise('parser: strips leading UTF-8 BOM', (t, resolve, reject) => {
     ]);
     resolve();
   });
+});
+
+const rowsOf = (source, options) =>
+  new Promise((resolve, reject) => {
+    const result = [],
+      asm = new Assembler(),
+      pipeline = chain([source, parser(options)]);
+    pipeline.on('data', token => {
+      asm[token.name] && asm[token.name](token.value);
+      if (asm.done) result.push(asm.current);
+    });
+    pipeline.on('error', reject);
+    pipeline.on('end', () => resolve(result));
+  });
+
+test('parser: drops one leading U+FEFF, not two', async t => {
+  t.deepEqual(await rowsOf(readString('\uFEFF\uFEFFa,b\r\n')), [['\uFEFFa', 'b']]);
+});
+
+test('parser: drops a leading BOM split across byte chunks', async t => {
+  t.deepEqual(await rowsOf(readString(Buffer.from('\uFEFFa,b\r\n'), 1)), [['a', 'b']]);
+});
+
+test('parser: keeps a leading BOM with ignoreBOM', async t => {
+  t.deepEqual(await rowsOf(readString('\uFEFFa,b\r\n'), {ignoreBOM: true}), [['\uFEFFa', 'b']], 'strings');
+  t.deepEqual(await rowsOf(readString(Buffer.from('\uFEFFa,b\r\n'), 1), {ignoreBOM: true}), [['\uFEFFa', 'b']], 'bytes');
+});
+
+test('parser: csvParser leaves a leading BOM in the first field', t => {
+  const parse = csvParser(),
+    tokens = [];
+  for (const chunk of ['\uFEFFa,b\r\n', none]) {
+    const result = parse(chunk);
+    if (result !== none) tokens.push(...getManyValues(result));
+  }
+  t.deepEqual(
+    tokens.filter(token => token.name === 'stringValue').map(token => token.value),
+    ['\uFEFFa', 'b']
+  );
 });
 
 test.asPromise('parser: throws on character after closing quote', (t, resolve, reject) => {

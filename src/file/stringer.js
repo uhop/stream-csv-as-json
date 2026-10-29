@@ -16,7 +16,10 @@ import asyncBlockWriter from 'stream-chain/utils/asyncBlockWriter.js';
 
 import stringer from '../core/stringer.js';
 
-const stringerToFile = (path, options) => gen(stringer(options), asyncBlockWriter(path, options));
+const stringerToFile = (path, options) => {
+  const writer = asyncBlockWriter(path, options);
+  return Object.assign(gen(stringer(options), writer), {close: writer.close});
+};
 
 export default stringerToFile;
 export {stringerToFile, stringerToFile as stringer};

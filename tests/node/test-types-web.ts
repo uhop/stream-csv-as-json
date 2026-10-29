@@ -3,9 +3,14 @@
 
 import test from 'tape-six';
 import webMake from '../../src/web/index.js';
-import parser from '../../src/web/parser.js';
+import {parser, csvParser} from '../../src/web/parser.js';
 import stringer from '../../src/web/stringer.js';
 import asObjects from '../../src/web/as-objects.js';
+
+test('types: web csvParser', t => {
+  const tokenizer = csvParser({ignoreBOM: true});
+  t.equal(typeof tokenizer, 'function');
+});
 
 test('types: web entries expose asWebStream', t => {
   const m: {readable: ReadableStream; writable: WritableStream} = webMake();

@@ -29,8 +29,8 @@ src/
 │   ├── stringer.js (+.d.ts)
 │   └── utils/with-parser.js (+.d.ts)
 └── file/                 # Node-only file-edge components (fs)
-    ├── parser.js (+.d.ts)        # parseFile = gen(asyncBlockReader, parser)
-    ├── stringer.js (+.d.ts)      # stringerToFile = gen(stringer, asyncBlockWriter)
+    ├── parser.js (+.d.ts)        # parseFile = gen(asyncBlockReader, csvParser)
+    ├── stringer.js (+.d.ts)      # stringerToFile = gen(stringer, asyncBlockWriter), plus close()
     └── index.js (+.d.ts)
 tests/                    # Tests (tape-six)
 ├── helpers.js            # Node helpers: readString (chunked input), streamToArray
@@ -78,14 +78,16 @@ interchange protocol shared with `stream-json`. The `.d.ts` exports these as dis
 
 ### How the Parser works
 
-1. `parser(options)` returns a flushable function composed with `fixUtf8Stream()` via `gen()`. `parser.asStream(options)` wraps it as a Node `Duplex`;
-   `parser.asWebStream(options)` wraps it as a Web `{readable, writable}` pair.
+1. `parser(options)` returns `gen(fixUtf8Stream(options), csvParser(options))`, a flushable function. `parser.asStream(options)` wraps it as a Node `Duplex`;
+   `parser.asWebStream(options)` wraps it as a Web `{readable, writable}` pair. The tokenizer alone is the named export `csvParser`, which consumes strings
+   only.
 2. It consumes CSV text chunks and produces `{name, value}` tokens representing rows (arrays) of field values (strings).
 3. A state machine tracks the current parsing state: `value1` (start of row), `value` (start of field), `regularValue`, `quotedValue`, `quotedContinuation`.
 4. Parser options control packing and streaming:
    - `packStrings`/`packValues` (default: true) — emit `stringValue` tokens with the complete field value.
    - `streamStrings`/`streamValues` (default: true) — emit `startString`/`stringChunk`/`endString` tokens for incremental processing.
    - `separator` (default: `','`) — field separator character.
+   - `ignoreBOM` (default: false) — keep a leading byte-order mark instead of dropping it.
 5. The value state takes a `charCodeAt` whole-field fast path: it scans an unquoted field (or a quoted field, decoding `""` escapes) to its terminator in a
    single pass and emits one set of tokens with no regex engine — when the terminating separator/CR/LF is already in the buffer. Fields that abut the buffer
    tail, empty fields, row terminators, and multi-char separators fall back **verbatim** to the incremental sticky-regex (`/y` flag) machine, which preserves
@@ -93,7 +95,10 @@ interchange protocol shared with `stream-json`. The `.d.ts` exports these as dis
    instance gets its own regex pattern set built from the configured separator.
 6. Handles quoted fields (RFC 4180): double-quote escaping, embedded separators, embedded newlines. CRLF is the spec line terminator; the parser also accepts LF
    and bare CR.
-7. Strips a single leading UTF-8 BOM (`U+FEFF`) from the input.
+7. Drops one leading byte-order mark (`U+FEFF`) through `fixUtf8Stream()`, whether the input is bytes or strings, unless `ignoreBOM` is set; the tokenizer
+   strips nothing, so a second `U+FEFF` stays in the first field. A surrogate pair is never split between two `stringChunk` tokens: a chunk that would end on a
+   high surrogate holds it for the next chunk (`pushStringChunk`), and a held unit is emitted before `endString` (`pushEndString`). A sink that encodes each
+   chunk alone, such as a Node `fs.WriteStream`, then writes the character.
 8. Throws on malformed quoted values:
    - Unterminated quoted value at end-of-input: `"Parser cannot parse input: expected a quoted value"`.
    - Non-separator/non-newline character after a closing quote: `"Parser cannot parse input: unexpected character after a quoted value"`.
@@ -127,7 +132,9 @@ composition), `asObjects.withParserAsStream(options)`, `asObjects.withParserAsWe
 
 Two modes:
 
-1. **Stream mode** (default): Consumes `startString`/`stringChunk`/`endString` tokens. Always quotes fields (wraps in `"`), escapes `"` as `""`.
+1. **Stream mode** (default): Consumes `startString`/`stringChunk`/`endString` tokens. Always quotes fields (wraps in `"`), escapes `"` as `""`. Holds a
+   trailing high surrogate of a `stringChunk` for the next output string (emitted with the closing quote, or at flush), so a pair split by any token source
+   reaches a sink whole. CSV has no escape for a lone surrogate, so this is the only protection a sink gets.
 2. **Value mode** (`useStringValues: true`): Consumes `stringValue` tokens. Quotes only when necessary (field contains separator, `"`, `\r`, or `\n`).
 
 Options: `useStringValues`/`useValues` (default: false), `separator` (default: `','`), `rowTerminator` (default: `'\r\n'`; override with `'\n'` for Unix-style
@@ -145,11 +152,12 @@ type. `src/web/index.js` default-exports `parser.asWebStream` (the `emit()` even
 
 ### file components
 
-Node-only file-edge stages (`src/file/`). `parseFile(options)` = `gen(asyncBlockReader(options), parser(options))` turns a file path into a CSV token stream;
-`stringerToFile(path, options)` = `gen(stringer(options), asyncBlockWriter(path, options))` writes a token stream to a file. Both reuse stream-chain's public
-`asyncBlockReader` / `asyncBlockWriter` utils (64 KB read / 1 MB write blocks, `StringDecoder` for cross-block UTF-8). Drive them with `pipe` + `drain` from
-`stream-chain/utils` — the writer closes its file handle on the flush signal. They resolve through the `./*` export (no dedicated `exports` entry);
-`src/file/index.js` is a barrel.
+Node-only file-edge stages (`src/file/`). `parseFile(options)` = `gen(asyncBlockReader(options), csvParser(options))` turns a file path into a CSV token stream:
+the reader decodes the bytes and drops one leading BOM (unless `ignoreBOM`), so it takes the tokenizer, not `parser()`, whose `fixUtf8Stream()` would drop a
+second. `stringerToFile(path, options)` = `gen(stringer(options), asyncBlockWriter(path, options))` writes a token stream to a file and carries the writer's
+`close()`, which a pipeline calls when it ends without a flush. Both reuse stream-chain's public `asyncBlockReader` / `asyncBlockWriter` utils (64 KB read / 1
+MB write blocks, `StringDecoder` for cross-block UTF-8). Drive them with `pipe` + `drain` from `stream-chain/utils` — the writer closes its file handle on the
+flush signal. They resolve through the `./*` export (no dedicated `exports` entry); `src/file/index.js` is a barrel.
 
 ## Module dependency graph
 
@@ -171,7 +179,7 @@ src/web/stringer.js         ── stream-chain/web (asWebStream), src/core/stri
 src/web/utils/with-parser.js ── stream-chain/web (asWebStream), src/core/utils/with-parser
 src/web/index.js            ── src/web/parser
 
-src/file/parser.js          ── stream-chain/core (gen), stream-chain/utils/asyncBlockReader, src/core/parser
+src/file/parser.js          ── stream-chain/core (gen), stream-chain/utils/asyncBlockReader, src/core/parser (csvParser)
 src/file/stringer.js        ── stream-chain/core (gen), stream-chain/utils/asyncBlockWriter, src/core/stringer
 src/file/index.js           ── src/file/parser, src/file/stringer
 ```

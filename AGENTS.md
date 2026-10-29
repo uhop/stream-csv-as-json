@@ -60,8 +60,8 @@ stream-csv-as-json/
 │   │   ├── stringer.js (+.d.ts)
 │   │   └── utils/with-parser.js (+.d.ts)
 │   └── file/               # Node-only file-edge components (fs)
-│       ├── parser.js (+.d.ts)     # parseFile = gen(asyncBlockReader, parser)
-│       ├── stringer.js (+.d.ts)   # stringerToFile = gen(stringer, asyncBlockWriter)
+│       ├── parser.js (+.d.ts)     # parseFile = gen(asyncBlockReader, csvParser)
+│       ├── stringer.js (+.d.ts)   # stringerToFile = gen(stringer, asyncBlockWriter), plus close()
 │       └── index.js (+.d.ts)
 ├── tests/                  # Tests (tape-six)
 │   ├── helpers.js          # Node test helpers (readString, streamToArray)
@@ -116,15 +116,19 @@ stream-csv-as-json/
 ## Architecture
 
 - **parser** (`src/core/parser.js`) is the core. It consumes CSV text and produces a SAX-like token stream. Uses `flushable()`/`gen()`/`many`/`none` from
-  `stream-chain/core`, wrapped with `fixUtf8Stream()` via `gen()`.
+  `stream-chain/core`: `parser(options)` = `gen(fixUtf8Stream(options), csvParser(options))`, and the tokenizer alone is the named export `csvParser`.
   - Factory: `parser(options)` returns a flushable function. `parser.asStream(options)` returns a Node `Duplex`; `parser.asWebStream(options)` returns a Web
     `{readable, writable}` pair (Node entry attaches both; Web entry only `.asWebStream`).
-  - Options: `packStrings`/`packValues` (default: true), `streamStrings`/`streamValues` (default: true), `separator` (default: `','`).
+  - Options: `packStrings`/`packValues` (default: true), `streamStrings`/`streamValues` (default: true), `separator` (default: `','`), `ignoreBOM` (default:
+    false).
   - The value state takes a `charCodeAt` whole-field fast path (unquoted + quoted-with-`""` fields whose terminator is already buffered), falling back verbatim
     to the incremental sticky-regex machine for fields that abut the buffer tail, empty fields, row terminators, and multi-char separators. Structural tokens
     are module-level singletons. Each parser instance gets its own regex pattern set.
   - Reads CRLF (RFC 4180), LF, and bare CR as row terminators.
-  - Strips a single leading UTF-8 BOM (`U+FEFF`) at the start of input.
+  - Drops one leading byte-order mark (`U+FEFF`) through stream-chain's `fixUtf8Stream()`, unless `ignoreBOM` is set; `csvParser()` alone drops nothing. Don't
+    strip it in the tokenizer too: a second strip drops a `U+FEFF` that belongs to the data.
+  - Never ends a `stringChunk` on a high surrogate: `pushStringChunk` holds it for the next chunk, and `pushEndString` emits a held unit before `endString`.
+    Every `stringChunk` and `endString` the regex machine emits goes through them; the fast paths emit whole fields.
   - Throws on malformed quoted values: an unterminated quoted value at end-of-input, or a non-separator/non-newline character after a closing quote.
 - **asObjects** (`src/core/as-objects.js`) transforms the token stream: uses the first row as field names, converts subsequent rows from array tokens to object
   tokens.
@@ -136,13 +140,15 @@ stream-csv-as-json/
 - **stringer** (`src/core/stringer.js`) converts a CSV token stream back to CSV text. Handles quoting of values containing separators, quotes, or newlines.
   - Factory: `stringer(options)`. `stringer.asStream(options)` / `stringer.asWebStream(options)`.
   - Options: `useStringValues`/`useValues`, `separator` (default: `','`), `rowTerminator` (default: `'\r\n'` per RFC 4180; pass `'\n'` for Unix-style output).
+  - Stream mode holds a trailing high surrogate of a `stringChunk` for the next output string, so a pair split by any token source reaches a sink whole.
 - **Main module** (`src/index.js`) creates a parser stream with `emit()` applied (from `stream-json/utils/emit`) — Node-only event sugar. The Web entry
   (`src/web/index.js`) default-exports `parser.asWebStream`.
 - **with-parser** (`src/core/utils/with-parser.js`) CSV-specific version of `stream-json`'s `withParser` utility; node/web wrappers attach the adapters.
-- **file components** (`src/file/parser.js`, `src/file/stringer.js`) Node-only file-edge stages. `parseFile(options)` = `gen(asyncBlockReader, parser)` turns a
-  path into a token stream; `stringerToFile(path, options)` = `gen(stringer, asyncBlockWriter)` writes a token stream to a file. Reuse stream-chain's
-  `asyncBlockReader` / `asyncBlockWriter`. Drive with `pipe` + `drain` from `stream-chain/utils` (the writer closes its handle on flush). Resolve via `./*` (no
-  new `exports` entry).
+- **file components** (`src/file/parser.js`, `src/file/stringer.js`) Node-only file-edge stages. `parseFile(options)` = `gen(asyncBlockReader, csvParser)` turns
+  a path into a token stream: the reader decodes the bytes and drops the BOM, so `parser()`, with its own `fixUtf8Stream()`, would drop a second one.
+  `stringerToFile(path, options)` = `gen(stringer, asyncBlockWriter)` writes a token stream to a file and carries the writer's `close()` for a pipeline that
+  ends without a flush. Reuse stream-chain's `asyncBlockReader` / `asyncBlockWriter`. Drive with `pipe` + `drain` from `stream-chain/utils` (the writer closes
+  its handle on flush). Resolve via `./*` (no new `exports` entry).
 
 ## Token protocol
 

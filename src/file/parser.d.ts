@@ -4,6 +4,7 @@ import type {ParserOptions, Token} from '../core/parser.js';
  * Node-only input-edge stage: turns a file path into a CSV token stream.
  * `parseFile(options)` returns a composed `gen()` function — pass the file path
  * as its input value, driving it with `pipe` + `drain` from `stream-chain/utils`.
+ * One leading byte-order mark (`U+FEFF`) is dropped unless `ignoreBOM` is set.
  *
  * @param options - Parser options plus `readBlockSize`.
  */

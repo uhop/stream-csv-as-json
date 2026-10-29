@@ -55,6 +55,32 @@ test.asPromise('parseFile: parses a CSV file into rows', async (t, resolve, reje
   }
 });
 
+const BOM = String.fromCharCode(0xfeff);
+
+test('parseFile: drops a leading BOM', async t => {
+  await inTempDir(async dir => {
+    const path = join(dir, 'bom.csv');
+    await writeFile(path, BOM + 'a,b\r\n');
+    t.deepEqual(await rowsOf(path), [['a', 'b']]);
+  });
+});
+
+test('parseFile: drops one leading U+FEFF, not two', async t => {
+  await inTempDir(async dir => {
+    const path = join(dir, 'bom2.csv');
+    await writeFile(path, BOM + BOM + 'a,b\r\n');
+    t.deepEqual(await rowsOf(path), [[BOM + 'a', 'b']]);
+  });
+});
+
+test('parseFile: keeps a leading BOM with ignoreBOM', async t => {
+  await inTempDir(async dir => {
+    const path = join(dir, 'bom-kept.csv');
+    await writeFile(path, BOM + 'a,b\r\n');
+    t.deepEqual(await rowsOf(path, {ignoreBOM: true}), [[BOM + 'a', 'b']]);
+  });
+});
+
 test.asPromise('parseFile: tiny readBlockSize exercises cross-block + UTF-8', async (t, resolve, reject) => {
   try {
     await inTempDir(async dir => {

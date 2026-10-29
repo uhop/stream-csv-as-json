@@ -179,6 +179,18 @@ test.asPromise('parser (web): strips leading UTF-8 BOM', async (t, resolve, reje
   }
 });
 
+const BOM = String.fromCharCode(0xfeff);
+
+test('parser (web): drops one leading U+FEFF, not two', async t => {
+  const out = await drain(chain([readWebString(BOM + BOM + 'a,b\r\n'), parser()]));
+  t.deepEqual(assemble(out), [[BOM + 'a', 'b']]);
+});
+
+test('parser (web): keeps a leading BOM with ignoreBOM', async t => {
+  const out = await drain(chain([readWebString(BOM + 'a,b\r\n'), parser({ignoreBOM: true})]));
+  t.deepEqual(assemble(out), [[BOM + 'a', 'b']]);
+});
+
 test.asPromise('parser (web): throws on character after closing quote', async (t, resolve, reject) => {
   try {
     await drain(chain([readWebString('"a"b,c\r\n'), parser()]));

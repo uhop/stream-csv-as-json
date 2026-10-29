@@ -17,6 +17,9 @@ const ASCII_QUOTE = 0x22, // "
   ASCII_LF = 0x0a, // \n
   ASCII_CR = 0x0d; // \r
 
+const HIGH_SURROGATE_FIRST = 0xd800,
+  HIGH_SURROGATE_LAST = 0xdbff;
+
 const defaultPatterns = {
   value: /(?:"|,|\n|\r|[\s\S])/y,
   regularValue: /(?:[^,\r\n]{1,256}|,|\n|\r)/y,
@@ -63,8 +66,31 @@ const csvParser = options => {
     expect = 'value1',
     expectLF = false,
     accumulator = '',
-    buffer = '',
-    firstChunk = true;
+    heldSurrogate = '',
+    buffer = '';
+
+  // a sink that encodes each chunk alone needs every surrogate pair within one chunk
+  const pushStringChunk = (tokens, value) => {
+    if (heldSurrogate) {
+      value = heldSurrogate + value;
+      heldSurrogate = '';
+    }
+    const last = value.charCodeAt(value.length - 1);
+    if (last >= HIGH_SURROGATE_FIRST && last <= HIGH_SURROGATE_LAST) {
+      heldSurrogate = value.charAt(value.length - 1);
+      if (value.length === 1) return;
+      value = value.slice(0, -1);
+    }
+    tokens.push({name: 'stringChunk', value});
+  };
+
+  const pushEndString = tokens => {
+    if (heldSurrogate) {
+      tokens.push({name: 'stringChunk', value: heldSurrogate});
+      heldSurrogate = '';
+    }
+    tokens.push(tokenEndString);
+  };
 
   return flushable(buf => {
     const tokens = [];
@@ -72,10 +98,6 @@ const csvParser = options => {
     if (buf === none) {
       done = true;
     } else {
-      if (firstChunk) {
-        firstChunk = false;
-        if (buf.charCodeAt(0) === 0xfeff) buf = buf.slice(1);
-      }
       buffer += buf;
     }
 
@@ -202,7 +224,7 @@ const csvParser = options => {
             default:
               if (streamStrings) {
                 tokens.push(tokenStartString);
-                tokens.push({name: 'stringChunk', value});
+                pushStringChunk(tokens, value);
               }
               packStrings && (accumulator = value);
               expect = 'regularValue';
@@ -219,7 +241,7 @@ const csvParser = options => {
           value = match[0];
           switch (value) {
             case separator:
-              streamStrings && tokens.push(tokenEndString);
+              streamStrings && pushEndString(tokens);
               if (packStrings) {
                 tokens.push({name: 'stringValue', value: accumulator});
                 accumulator = '';
@@ -230,7 +252,7 @@ const csvParser = options => {
               if (expectLF) break;
             // intentional fall down
             case '\r':
-              streamStrings && tokens.push(tokenEndString);
+              streamStrings && pushEndString(tokens);
               if (packStrings) {
                 tokens.push({name: 'stringValue', value: accumulator});
                 accumulator = '';
@@ -239,7 +261,7 @@ const csvParser = options => {
               expect = 'value1';
               break;
             default:
-              streamStrings && tokens.push({name: 'stringChunk', value});
+              streamStrings && pushStringChunk(tokens, value);
               packStrings && (accumulator += value);
               break;
           }
@@ -257,7 +279,7 @@ const csvParser = options => {
           if (value === '"') {
             expect = 'quotedContinuation';
           } else {
-            streamStrings && tokens.push({name: 'stringChunk', value});
+            streamStrings && pushStringChunk(tokens, value);
             packStrings && (accumulator += value);
           }
           index += value.length;
@@ -273,11 +295,11 @@ const csvParser = options => {
           }
           value = match[0];
           if (value === '"') {
-            streamStrings && tokens.push({name: 'stringChunk', value: '"'});
+            streamStrings && pushStringChunk(tokens, '"');
             packStrings && (accumulator += '"');
             expect = 'quotedValue';
           } else {
-            streamStrings && tokens.push(tokenEndString);
+            streamStrings && pushEndString(tokens);
             if (packStrings) {
               tokens.push({name: 'stringValue', value: accumulator});
               accumulator = '';
@@ -311,7 +333,7 @@ const csvParser = options => {
           tokens.push(tokenEndArray);
           break;
         default:
-          streamStrings && tokens.push(tokenEndString);
+          streamStrings && pushEndString(tokens);
           packStrings && tokens.push({name: 'stringValue', value: accumulator});
           tokens.push(tokenEndArray);
           break;
@@ -323,7 +345,7 @@ const csvParser = options => {
   });
 };
 
-const parser = options => gen(fixUtf8Stream(), csvParser(options));
+const parser = options => gen(fixUtf8Stream(options), csvParser(options));
 
 export default parser;
-export {parser};
+export {parser, csvParser};

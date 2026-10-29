@@ -31,4 +31,5 @@ type ParserOptions = parser.ParserOptions;
 
 export default parser;
 export {parser};
+export {csvParser} from '../core/parser.js';
 export type {Token, TokenName, ParserOptions};

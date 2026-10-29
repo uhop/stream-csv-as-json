@@ -43,10 +43,11 @@ ESM-only. Three substrate flavors per component:
 
 ### parser
 
-`parser(options)` — factory returning a flushable function that produces `{name, value}` tokens. Accepts CRLF, LF, and bare CR row terminators; strips a leading UTF-8 BOM; throws on malformed quoted values.
+`parser(options)` — factory returning a flushable function that produces `{name, value}` tokens. Accepts CRLF, LF, and bare CR row terminators; drops one leading byte-order mark unless `ignoreBOM` is set; never splits a surrogate pair between two `stringChunk` tokens; throws on malformed quoted values.
 
 - `parser.asStream(options)` — Node `Duplex`. `parser.asWebStream(options)` — Web `{readable, writable}`.
-- Options: `packStrings`/`packValues` (default: true), `streamStrings`/`streamValues` (default: true), `separator` (default: `','`).
+- `csvParser(options)` — named export: the tokenizer without the UTF-8 decoding front. Consumes strings only; a leading byte-order mark stays in the first field.
+- Options: `packStrings`/`packValues` (default: true), `streamStrings`/`streamValues` (default: true), `separator` (default: `','`), `ignoreBOM` (default: false).
 
 ```js
 import parser from 'stream-csv-as-json/parser.js';
@@ -83,7 +84,7 @@ chain([parser(), asObjects(), token => console.log(token)]);
 
 ### stringer
 
-`stringer(options)` — factory converting a CSV token stream back to CSV text.
+`stringer(options)` — factory converting a CSV token stream back to CSV text. A surrogate pair split between two `stringChunk` tokens is written within one output string.
 
 - `stringer.asStream(options)` / `stringer.asWebStream(options)`.
 - Options: `useStringValues`/`useValues` (default: false), `separator` (default: `','`), `rowTerminator` (default: `'\r\n'` per RFC 4180; override with `'\n'` for Unix-style output).
@@ -97,8 +98,8 @@ chain([parser(), stringer(), fs.createWriteStream('output.csv')]);
 
 Node-only file-edge stages compose stream-chain's async block reader/writer with the core parser/stringer. Drive them with `pipe` + `drain` from `stream-chain/utils` — the writer closes its file handle on flush.
 
-- `parseFile(options)` (`stream-csv-as-json/file/parser.js`) — turns a file path into a token stream (`gen(asyncBlockReader, parser)`). Adds `readBlockSize` (default 64 KB).
-- `stringerToFile(path, options)` (`stream-csv-as-json/file/stringer.js`) — writes a token stream to a file (`gen(stringer, asyncBlockWriter)`). Adds `writeBlockSize` (default 1 MB).
+- `parseFile(options)` (`stream-csv-as-json/file/parser.js`) — turns a file path into a token stream (`gen(asyncBlockReader, csvParser)`; the reader drops one leading byte-order mark unless `ignoreBOM` is set). Adds `readBlockSize` (default 64 KB).
+- `stringerToFile(path, options)` (`stream-csv-as-json/file/stringer.js`) — writes a token stream to a file (`gen(stringer, asyncBlockWriter)`). Adds `writeBlockSize` (default 1 MB). The sink's `close()` releases the file handle when a pipeline ends without a flush.
 
 ```js
 import pipe from 'stream-chain/utils/pipe.js';

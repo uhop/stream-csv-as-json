@@ -124,11 +124,12 @@ Named export: `parser` (the factory function). The `emit()` event sugar is Node-
 
 ## Parser API
 
-`parser(options)` — factory returning a flushable function that consumes CSV text and produces `{name, value}` tokens. Composed with `fixUtf8Stream()` via `gen()`.
+`parser(options)` — factory returning a flushable function that consumes CSV text and produces `{name, value}` tokens. Composed as `gen(fixUtf8Stream(options), csvParser(options))`.
 
 - `parser(options)` — returns a flushable function for use in `chain()`.
 - `parser.asStream(options)` — returns a Node `Duplex` stream (writableObjectMode: false, readableObjectMode: true).
 - `parser.asWebStream(options)` — returns a Web `{readable, writable}` pair.
+- `csvParser(options)` — named export of `stream-csv-as-json/core/parser.js`, re-exported by `stream-csv-as-json/parser.js` and `stream-csv-as-json/web/parser.js`: the tokenizer without the `fixUtf8Stream()` front. It consumes strings only, and a leading byte-order mark stays in the first field (`ignoreBOM` has no effect here). `parseFile` uses it behind the block reader, which decodes the bytes itself.
 
 Options:
 
@@ -137,13 +138,15 @@ Options:
 - `streamStrings` (boolean, default: true) — emit `startString`/`stringChunk`/`endString` tokens.
 - `streamValues` (boolean) — alias for `streamStrings`.
 - `separator` (string, default: `','`) — field separator character.
+- `ignoreBOM` (boolean, default: false) — keep a byte-order mark (`U+FEFF`) that starts the input instead of dropping it, as `TextDecoder`'s option of the same name does.
 
 If `packStrings` is false, `streamStrings` is forced to true (at least one representation must be emitted).
 
 CSV parsing:
 - Handles quoted fields per RFC 4180: double-quote escaping (`""` → `"`), embedded separators, embedded newlines.
 - Row terminator acceptance is lenient — CRLF (RFC 4180), LF, and bare CR all work.
-- A leading UTF-8 BOM (`U+FEFF`) at the start of the input is stripped.
+- One leading byte-order mark (`U+FEFF`) is dropped, whether the input is bytes or strings, unless `ignoreBOM` is set. A second `U+FEFF` stays in the first field. The drop happens in stream-chain's `fixUtf8Stream()`, so `csvParser()` alone drops nothing.
+- A surrogate pair is never split between two `stringChunk` tokens: a chunk that would end on a high surrogate holds it for the next chunk, so a sink that encodes each chunk alone writes the character, not two U+FFFD. A lone high surrogate at the end of a field is emitted as its own chunk before `endString`.
 - Each row is represented as an array: `startArray`, field tokens, `endArray`.
 - Uses sticky RegExp (`/y` flag) for performance; each parser instance owns its own pattern set.
 
@@ -278,7 +281,7 @@ Options:
 
 Two modes:
 
-1. **Stream mode** (default, `useStringValues: false`): Consumes `startString`/`stringChunk`/`endString` tokens. Always quotes fields (wraps in `"`), escapes `"` as `""`.
+1. **Stream mode** (default, `useStringValues: false`): Consumes `startString`/`stringChunk`/`endString` tokens. Always quotes fields (wraps in `"`), escapes `"` as `""`. A surrogate pair split between two `stringChunk` tokens is written within one output string, so a sink that encodes each string alone (a Node `fs.WriteStream`) writes the character.
 2. **Value mode** (`useStringValues: true`): Consumes `stringValue` tokens. Quotes only when necessary (field contains separator, `"`, `\r`, or `\n`).
 
 Rows are terminated with the configured `rowTerminator` (default `\r\n` per RFC 4180).
@@ -316,8 +319,8 @@ chain([
 
 File-edge stages under `stream-csv-as-json/file/` compose stream-chain's async block reader/writer with the core parser/stringer. They use `node:fs/promises` (Node-only) and resolve through the `./*` export.
 
-- `parseFile(options)` (`stream-csv-as-json/file/parser.js`) — input-edge stage: `gen(asyncBlockReader(options), parser(options))`. Pass a file path as the input value; yields the CSV token stream. Options extend the parser options with `readBlockSize` (default 65536 / 64 KB). Also exported as the named `parser`.
-- `stringerToFile(path, options)` (`stream-csv-as-json/file/stringer.js`) — output-edge sink: `gen(stringer(options), asyncBlockWriter(path, options))`. Writes the token stream to `path`. Options extend the stringer options with `writeBlockSize` (default 1048576 / 1 MB). Also exported as the named `stringer`. The writer opens lazily and closes its file handle on the flush signal, so the pipeline **must** be flushed.
+- `parseFile(options)` (`stream-csv-as-json/file/parser.js`) — input-edge stage: `gen(asyncBlockReader(options), csvParser(options))`. Pass a file path as the input value; yields the CSV token stream. The reader decodes the bytes and drops one leading byte-order mark unless `ignoreBOM` is set; `parser()` would drop a second one through its own `fixUtf8Stream()`, which is why the file stage uses `csvParser()`. Options extend the parser options with `readBlockSize` (default 65536 / 64 KB). Also exported as the named `parser`.
+- `stringerToFile(path, options)` (`stream-csv-as-json/file/stringer.js`) — output-edge sink: `gen(stringer(options), asyncBlockWriter(path, options))`. Writes the token stream to `path`. Options extend the stringer options with `writeBlockSize` (default 1048576 / 1 MB). Also exported as the named `stringer`. The writer opens lazily and closes its file handle on the flush signal, so the pipeline **must** be flushed. The returned sink (typed `StringerToFile`) also carries `close()`: it releases the file handle without writing the buffered tail, after any write in flight settles. A `chain()`, `asStream()`, or `asWebStream()` pipeline calls it when it ends without a flush (an error in another stage, an early break); call it yourself when driving the sink some other way. It is idempotent, and every later call to the sink throws.
 
 Drive a file pipeline with `pipe` + `drain` from `stream-chain/utils` (`pipe` runs the flush after the data pass, which is required for the writer to close):
 

@@ -1,4 +1,4 @@
-import parser, {ParserOptions} from './parser.js';
+import {parser, ParserOptions} from './parser.js';
 
 /**
  * Web entry point — creates a CSV parser as a Web `TransformStream`-shaped pair.

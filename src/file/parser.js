@@ -13,9 +13,11 @@
 import {gen} from 'stream-chain/core';
 import asyncBlockReader from 'stream-chain/utils/asyncBlockReader.js';
 
-import parser from '../core/parser.js';
+import {csvParser} from '../core/parser.js';
 
-const parseFile = options => gen(asyncBlockReader(options), parser(options));
+// not `parser()`: the reader already decodes and drops the BOM, and the
+// `fixUtf8Stream()` in front of `parser()` would drop a second U+FEFF
+const parseFile = options => gen(asyncBlockReader(options), csvParser(options));
 
 export default parseFile;
 export {parseFile, parseFile as parser};

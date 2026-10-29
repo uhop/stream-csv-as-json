@@ -58,8 +58,17 @@ const stringer = options => {
     });
   }
 
+  // a sink that encodes each string alone needs every surrogate pair within one string
+  let heldSurrogate = '';
+
+  const takeHeld = () => {
+    const held = heldSurrogate;
+    heldSurrogate = '';
+    return held;
+  };
+
   return flushable(chunk => {
-    if (chunk === none) return none;
+    if (chunk === none) return heldSurrogate ? takeHeld() : none;
     switch (chunk.name) {
       case 'startArray':
         skipSeparator = true;
@@ -77,9 +86,18 @@ const stringer = options => {
         return prefix + '"';
       }
       case 'endString':
-        return '"';
-      case 'stringChunk':
-        return chunk.value.replace(/"/g, '""');
+        return heldSurrogate ? takeHeld() + '"' : '"';
+      case 'stringChunk': {
+        let value = chunk.value.replace(/"/g, '""');
+        if (heldSurrogate) value = takeHeld() + value;
+        const last = value.charCodeAt(value.length - 1);
+        if (last >= 0xd800 && last <= 0xdbff) {
+          heldSurrogate = value.charAt(value.length - 1);
+          if (value.length === 1) return none;
+          value = value.slice(0, -1);
+        }
+        return value;
+      }
       case 'stringValue':
       case 'startObject':
       case 'endObject':

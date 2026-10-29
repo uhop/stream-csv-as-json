@@ -1,7 +1,7 @@
 import type {Duplex} from 'node:stream';
 
 import test from 'tape-six';
-import parser from '../../src/parser.js';
+import {parser, csvParser} from '../../src/parser.js';
 
 test('types: parser', t => {
   const fn = parser();
@@ -20,6 +20,17 @@ test('types: parser', t => {
   t.ok(w);
 
   const opts: parser.ParserOptions = {packStrings: true, streamStrings: false, separator: ','};
+  t.ok(opts);
+});
+
+test('types: csvParser and ignoreBOM', t => {
+  const tokenizer = csvParser({separator: ';'});
+  t.equal(typeof tokenizer, 'function');
+
+  const keepBOM = parser({ignoreBOM: true});
+  t.equal(typeof keepBOM, 'function');
+
+  const opts: parser.ParserOptions = {ignoreBOM: false};
   t.ok(opts);
 });
 
