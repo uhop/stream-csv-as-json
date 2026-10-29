@@ -22,9 +22,12 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the module map and dependency graph
 4. Type-check `.d.ts`: `npm run ts-check`
 5. JS lint (`src/**/*.js`): `npm run js-check`
 
-Touching `src/core/` or `src/web/` also warrants `npm run test:browser`, which runs the `tests/web/` suite in real headless chromium — the only check that actually proves nothing browser-facing imports `node:*`, since Node, Bun, and Deno all expose `node:` and a leak passes there silently. It is a development-only script and is deliberately absent from CI.
+Touching `src/core/` or `src/web/` also warrants `npm run test:browser`, which runs the `tests/web/` suite in real headless chromium — the only check that
+actually proves nothing browser-facing imports `node:*`, since Node, Bun, and Deno all expose `node:` and a leak passes there silently. It is a development-only
+script and is deliberately absent from CI.
 
-The runner is a normal devDependency, but this repo's `.npmrc` sets `ignore-scripts=true`, so installing it never downloads a browser. Install Chrome once, by hand:
+The runner is a normal devDependency, but this repo's `.npmrc` sets `ignore-scripts=true`, so installing it never downloads a browser. Install Chrome once, by
+hand:
 
 ```bash
 npm run browser:install
@@ -40,7 +43,8 @@ npm run browser:install
 
 ## License
 
-This project is distributed under the [BSD-3-Clause license](./LICENSE). External contributions are accepted only under licenses compatible with BSD-3-Clause; submissions under fundamentally incompatible licenses cannot be merged.
+This project is distributed under the [BSD-3-Clause license](./LICENSE). External contributions are accepted only under licenses compatible with BSD-3-Clause;
+submissions under fundamentally incompatible licenses cannot be merged.
 
 ## AI agents
 

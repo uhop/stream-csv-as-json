@@ -221,7 +221,8 @@ Conventions (mirror `stream-json`):
 
 Coverage checklist:
 
-- Parser: streaming tokens, packed tokens, pack-only, stream-only, custom separator, quoted fields, embedded newlines, embedded quotes, `\r\n` vs `\n`, flush behavior, empty fields, empty input.
+- Parser: streaming tokens, packed tokens, pack-only, stream-only, custom separator, quoted fields, embedded newlines, embedded quotes, `\r\n` vs `\n`, flush
+  behavior, empty fields, empty input.
 - Stringer: stream mode round-trip, value mode round-trip, custom separator, quoting logic.
 - AsObjects: header extraction, object conversion, fieldPrefix, pack/stream keys, useStringValues, extra columns, withParser pipeline.
 - Main module: event emission, full pipeline with gzipped sample.

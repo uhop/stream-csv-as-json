@@ -3,9 +3,13 @@
 [npm-img]: https://img.shields.io/npm/v/stream-csv-as-json.svg
 [npm-url]: https://npmjs.org/package/stream-csv-as-json
 
-`stream-csv-as-json` is a micro-library of stream components for building custom CSV processing pipelines with a minimal memory footprint, on **Node.js or Web Streams**. It can parse CSV files far exceeding available memory, streaming individual primitives using a SAX-inspired API.
+`stream-csv-as-json` is a micro-library of stream components for building custom CSV processing pipelines with a minimal memory footprint, on **Node.js or Web
+Streams**. It can parse CSV files far exceeding available memory, streaming individual primitives using a SAX-inspired API.
 
-`stream-csv-as-json` is a companion project for [stream-json](https://www.npmjs.com/package/stream-json) and [stream-chain](https://www.npmjs.com/package/stream-chain). It uses the **same token protocol** (`{name, value}` tokens) and works seamlessly with `stream-json` filters, streamers, and general infrastructure. This means you can combine CSV parsing with `stream-json` utilities like `streamValues`, `Filter`, `Pick`, and `Ignore` for powerful data processing pipelines.
+`stream-csv-as-json` is a companion project for [stream-json](https://www.npmjs.com/package/stream-json) and
+[stream-chain](https://www.npmjs.com/package/stream-chain). It uses the **same token protocol** (`{name, value}` tokens) and works seamlessly with `stream-json`
+filters, streamers, and general infrastructure. This means you can combine CSV parsing with `stream-json` utilities like `streamValues`, `Filter`, `Pick`, and
+`Ignore` for powerful data processing pipelines.
 
 ## Components
 
@@ -15,9 +19,12 @@
 - **[asObjects](https://github.com/uhop/stream-csv-as-json/wiki/as-objects)** — uses the first row as field names, converts subsequent rows to object tokens.
 - **[stringer](https://github.com/uhop/stream-csv-as-json/wiki/stringer)** — converts a CSV token stream back to CSV text.
 
-Every component runs on both substrates: `.asStream()` returns a Node.js `Duplex`, `.asWebStream()` returns a Web `TransformStream`-shaped `{readable, writable}` pair. All components are building blocks for flexible pipelines, combinable with custom functions, [stream-chain](https://www.npmjs.com/package/stream-chain), and [stream-json](https://www.npmjs.com/package/stream-json) utilities.
+Every component runs on both substrates: `.asStream()` returns a Node.js `Duplex`, `.asWebStream()` returns a Web `TransformStream`-shaped
+`{readable, writable}` pair. All components are building blocks for flexible pipelines, combinable with custom functions,
+[stream-chain](https://www.npmjs.com/package/stream-chain), and [stream-json](https://www.npmjs.com/package/stream-json) utilities.
 
-Full documentation is in the **[wiki](https://github.com/uhop/stream-csv-as-json/wiki)** — browse the [index](https://github.com/uhop/stream-csv-as-json/wiki/Home), or [search it](https://uhop.github.io/wiki-search/app/?wiki=uhop/stream-csv-as-json) by name.
+Full documentation is in the **[wiki](https://github.com/uhop/stream-csv-as-json/wiki)** — browse the
+[index](https://github.com/uhop/stream-csv-as-json/wiki/Home), or [search it](https://uhop.github.io/wiki-search/app/?wiki=uhop/stream-csv-as-json) by name.
 
 ## Installation
 
@@ -57,7 +64,8 @@ pipeline.on('end', () => console.log(`Found ${counter} matching rows.`));
 
 ### Quick start (Web Streams)
 
-Import the browser-safe Web entry from `stream-csv-as-json/web` (and `stream-chain/web`). The same component factories build the pipeline — `chain()` wraps them for whichever substrate it was imported from.
+Import the browser-safe Web entry from `stream-csv-as-json/web` (and `stream-chain/web`). The same component factories build the pipeline — `chain()` wraps them
+for whichever substrate it was imported from.
 
 ```js
 import {chain} from 'stream-chain/web';
@@ -96,7 +104,8 @@ fs.createReadStream('data.csv')
 
 ## Entry points
 
-**ESM:** the Node entry (`.`) and per-component subpaths carry both `.asStream` and `.asWebStream`; the `/web` entry is browser-safe (no `node:*`); the `/core` entry is the substrate-free factory with no adapters.
+**ESM:** the Node entry (`.`) and per-component subpaths carry both `.asStream` and `.asWebStream`; the `/web` entry is browser-safe (no `node:*`); the `/core`
+entry is the substrate-free factory with no adapters.
 
 ```js
 // Node-flavored (Duplex + Web adapters attached)
@@ -112,7 +121,9 @@ import webMake from 'stream-csv-as-json/web';
 import parser from 'stream-csv-as-json/core/parser.js';
 ```
 
-**CommonJS:** the package is ESM-only, but CommonJS consumers can still `require()` it on Node.js ≥ 22.12 (via Node's `require(ESM)`). Destructure the named exports exactly as in the ESM imports above — every default export has a named mirror, so the parser is a named `parser`, not a bare-callable default. See the [migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x) for the exact `require()` shape.
+**CommonJS:** the package is ESM-only, but CommonJS consumers can still `require()` it on Node.js ≥ 22.12 (via Node's `require(ESM)`). Destructure the named
+exports exactly as in the ESM imports above — every default export has a named mirror, so the parser is a named `parser`, not a bare-callable default. See the
+[migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x) for the exact `require()` shape.
 
 ## API at a glance
 
@@ -148,11 +159,13 @@ import parser from 'stream-csv-as-json/core/parser.js';
 | `streamKeys` / `streamValues` | `true`    | Emit `startKey`/`stringChunk`/`endKey` tokens |
 | `fieldPrefix`                 | `'field'` | Prefix for unnamed/extra fields               |
 
-> `useStringValues` / `useValues` on `asObjects` are deprecated no-ops kept for backward compatibility — the header collector now auto-detects the parser's mode.
+> `useStringValues` / `useValues` on `asObjects` are deprecated no-ops kept for backward compatibility — the header collector now auto-detects the parser's
+> mode.
 
 ## File components (Node)
 
-Node-only file-edge stages turn a path into a token stream and back, composing stream-chain's async block reader/writer with the core parser/stringer. Drive them with `pipe` + `drain` from `stream-chain/utils` — the writer closes its file handle on flush.
+Node-only file-edge stages turn a path into a token stream and back, composing stream-chain's async block reader/writer with the core parser/stringer. Drive
+them with `pipe` + `drain` from `stream-chain/utils` — the writer closes its file handle on flush.
 
 ```js
 import pipe from 'stream-chain/utils/pipe.js';
@@ -168,7 +181,8 @@ await drain(pipe(parseFile(), stringerToFile('out.csv', {useValues: true}))('in.
 
 ## TypeScript
 
-TypeScript declarations (`.d.ts`) are included for all modules. Tokens are typed as discriminated unions (`parser.Token`, `asObjects.AsObjectsToken`), so narrowing on `token.name` tightens `token.value` per arm.
+TypeScript declarations (`.d.ts`) are included for all modules. Tokens are typed as discriminated unions (`parser.Token`, `asObjects.AsObjectsToken`), so
+narrowing on `token.name` tightens `token.value` per arm.
 
 ## License
 
@@ -176,10 +190,12 @@ BSD-3-Clause
 
 ## Release history
 
-- 3.0.0 _ESM-native. Web Streams support. Node-only file-edge components (`parseFile`, `stringerToFile`). Improved parser. See the [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x)._
+- 3.0.0 _ESM-native. Web Streams support. Node-only file-edge components (`parseFile`, `stringerToFile`). Improved parser. See the
+  [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x)._
 - 2.1.0 _Configurable `rowTerminator` on `stringer`. `asObjects` header now auto-detects parser mode. Minor bugfixes._
 - 2.0.1 _Added direct dependency on `stream-chain`. Documentation updates._
-- 2.0.0 _Major rewrite: functional API (stream-chain 3.x), source in `src/`, TypeScript declarations, tape-six tests. See [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-1.x-to-2.x)._
+- 2.0.0 _Major rewrite: functional API (stream-chain 3.x), source in `src/`, TypeScript declarations, tape-six tests. See
+  [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-1.x-to-2.x)._
 - 1.0.5 _technical release: updated deps._
 - 1.0.4 _technical release: updated deps._
 - 1.0.3 _technical release: updated deps._

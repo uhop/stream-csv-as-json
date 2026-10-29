@@ -42,21 +42,25 @@ Summary:
 
 ### Components
 
-When a component is large or important enough for its own page, use its exported name: `ClassName.md`, `CONSTANT_NAME.md`, `functionName.md`. For functions, add trailing parens: `functionName().md`.
+When a component is large or important enough for its own page, use its exported name: `ClassName.md`, `CONSTANT_NAME.md`, `functionName.md`. For functions, add
+trailing parens: `functionName().md`.
 
 ### Previous versions
 
-A project may retain wiki docs for older versions. Rename old pages with a version prefix: `V1-` for version 1, `V2-` for version 2, etc. Update all internal and external references when renaming.
+A project may retain wiki docs for older versions. Rename old pages with a version prefix: `V1-` for version 1, `V2-` for version 2, etc. Update all internal
+and external references when renaming.
 
 These conventions do not apply to prefixed legacy pages.
 
 ### Other pages
 
-Technical pages (`Home.md`) and descriptive pages (`Migrating-from-v1-to-v2.md`, `Performance.md`, `Concepts.md`) use descriptive names visible in the wiki index.
+Technical pages (`Home.md`) and descriptive pages (`Migrating-from-v1-to-v2.md`, `Performance.md`, `Concepts.md`) use descriptive names visible in the wiki
+index.
 
 ## Actions
 
-**Important**: if wiki pages do not follow these conventions, ask once whether to fix them — legacy pages may need to stay. Apply these rules automatically to new pages or when explicitly asked.
+**Important**: if wiki pages do not follow these conventions, ask once whether to fix them — legacy pages may need to stay. Apply these rules automatically to
+new pages or when explicitly asked.
 
 When renaming pages, update all references in other wiki pages and in `README.md`.
 
