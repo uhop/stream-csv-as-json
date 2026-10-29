@@ -124,6 +124,11 @@ stream-csv-as-json/
   - The value state takes a `charCodeAt` whole-field fast path (unquoted + quoted-with-`""` fields whose terminator is already buffered), falling back verbatim
     to the incremental sticky-regex machine for fields that abut the buffer tail, empty fields, row terminators, and multi-char separators. Structural tokens
     are module-level singletons. Each parser instance gets its own regex pattern set.
+  - A multi-char separator can be split between chunks: `separatorPending` makes the regex machine wait when the buffer tail is the separator's start, both at a
+    field start and after a closing quote. Without it the start is read as data, or as an error after a quote.
+  - With a multi-char separator, an unquoted field matches `(?:(?!SEP)[^\r\n]){1,256}` (`multiCharRegularValue`), so it may hold the separator's characters, and
+    a match that ends at the buffer tail gives back the characters that may start the separator (`separatorStartLength`) until the next chunk decides. An
+    ambiguous input splits at the earliest separator; the ambiguity is the caller's (Eugene, 2026-10-28). A single-char separator keeps the `[^SEP\r\n]` class.
   - Reads CRLF (RFC 4180), LF, and bare CR as row terminators.
   - Drops one leading byte-order mark (`U+FEFF`) through stream-chain's `fixUtf8Stream()`, unless `ignoreBOM` is set; `csvParser()` alone drops nothing. Don't
     strip it in the tokenizer too: a second strip drops a `U+FEFF` that belongs to the data.
@@ -222,6 +227,9 @@ test.asPromise('example test (web)', async (t, resolve, reject) => {
   native Web Streams.
 - `tests/helpers.js` (`readString`) for Node; `tests/web-helpers.js` (`readWebString`, `drain`) for Web. Web tests must not import `node:*` and use
   `stream-json/web/assembler.js`.
+- Property tests live in `tests/node/test-property-parser.js` (`fast-check` with the `tape-six-fast-check` plugin's `t.prop()`): generated rows, separators, and
+  terminators, split anywhere as strings or UTF-8 bytes, must parse back to the same rows, with no surrogate pair split between two `stringChunk` tokens; the
+  stringer must round-trip them in both modes. A counterexample is a bug report: reproduce it as a fixed test before fixing.
 
 ## Key conventions
 

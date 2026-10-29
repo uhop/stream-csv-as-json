@@ -27,6 +27,9 @@ const defaultPatterns = {
   quotedContinuation: /(?:"|,|\n|\r)/y
 };
 
+// a longer separator: an unquoted field may hold its characters, only not the whole separator
+const multiCharRegularValue = /(?:(?:(?!,)[^\r\n]){1,256}|,|\n|\r)/y;
+
 const buildPatterns = separator => {
   const sep = separator === ',' ? ',' : separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
     sepOr = '|' + sep + '|',
@@ -34,6 +37,9 @@ const buildPatterns = separator => {
   const result = {};
   for (const key of Object.keys(defaultPatterns)) {
     result[key] = new RegExp(defaultPatterns[key].source.replace('|,|', sepOr).replace('[^,', sepNot), 'y');
+  }
+  if (separator.length > 1) {
+    result.regularValue = new RegExp(multiCharRegularValue.source.replace('(?!,)', '(?!' + sep + ')').replace('|,|', sepOr), 'y');
   }
   return result;
 };
@@ -68,6 +74,17 @@ const csvParser = options => {
     accumulator = '',
     heldSurrogate = '',
     buffer = '';
+
+  // a multi-character separator split between chunks: its start at the buffer tail waits for the rest
+  const separatorPending = index => sepCode < 0 && !done && buffer.length - index < separator.length && separator.startsWith(buffer.slice(index));
+
+  // the length of the longest tail of a field's text at the buffer tail that may start a multi-character separator
+  const separatorStartLength = value => {
+    for (let k = Math.min(value.length, separator.length - 1); k > 0; --k) {
+      if (separator.startsWith(value.slice(value.length - k))) return k;
+    }
+    return 0;
+  };
 
   // a sink that encodes each chunk alone needs every surrogate pair within one chunk
   const pushStringChunk = (tokens, value) => {
@@ -189,6 +206,7 @@ const csvParser = options => {
           }
 
           // fallback: incremental sticky-regex machine
+          if (separatorPending(index)) break main;
           patterns.value.lastIndex = index;
           match = patterns.value.exec(buffer);
           if (!match) break main;
@@ -239,6 +257,10 @@ const csvParser = options => {
           match = patterns.regularValue.exec(buffer);
           if (!match) break main;
           value = match[0];
+          if (sepCode < 0 && !done && index + value.length === buffer.length && value !== separator) {
+            value = value.slice(0, value.length - separatorStartLength(value));
+            if (!value) break main;
+          }
           switch (value) {
             case separator:
               streamStrings && pushEndString(tokens);
@@ -288,7 +310,7 @@ const csvParser = options => {
           patterns.quotedContinuation.lastIndex = index;
           match = patterns.quotedContinuation.exec(buffer);
           if (!match) {
-            if (index < buffer.length) {
+            if (index < buffer.length && !separatorPending(index)) {
               throw new Error('Parser cannot parse input: unexpected character after a quoted value');
             }
             break main;

@@ -33,4 +33,7 @@ Follow the tape-six skill and testing guide, then this project's conventions:
 - Build invisible and unpaired characters in code, never as literals: `String.fromCharCode(0xfeff)` for a byte-order mark, `String.fromCodePoint(0x1f600)` and
   its `charAt(0)` / `charAt(1)` for a surrogate pair and its halves. A raw U+FEFF is invisible in a diff, and a lone surrogate cannot be stored in a UTF-8 file.
 - `tests/data/sample.csv.gz` is the large fixture (18126 rows) exercising both parser paths.
+- Property tests: `tests/node/test-property-parser.js`, with `fast-check` and the `tape-six-fast-check` plugin (`import 'tape-six-fast-check'`, then
+  `await t.prop([...arbitraries], predicate, {numRuns})`). Extend its generators when a parser or stringer change opens a new input shape. A counterexample is a
+  bug report: pin it as a fixed test, see it fail, then fix.
 - Gate: `npm test`, `npm run ts-test`, `npm run ts-check`, `npm run js-check`, and `npm run lint`, each judged by its exit status.

@@ -72,12 +72,15 @@ import {chain} from 'stream-chain/web';
 import parser from 'stream-csv-as-json/web/parser.js';
 import asObjects from 'stream-csv-as-json/web/as-objects.js';
 
-const pipeline = chain([response.body.pipeThrough(new TextDecoderStream()), parser(), asObjects()]);
+const pipeline = chain([response.body, parser(), asObjects()]);
 
 for await (const token of pipeline.readable) {
   if (token.name === 'endObject') console.log('row');
 }
 ```
+
+Pass the response bytes straight to the parser: it decodes UTF-8 and drops one leading byte-order mark itself. A `TextDecoderStream` in front drops a second
+one.
 
 ### Using `.withParser()` for a combined pipeline
 
@@ -141,7 +144,7 @@ exports exactly as in the ESM imports above — every default export has a named
 | -------------------------------- | ------- | ----------------------------------------------------- |
 | `packStrings` / `packValues`     | `true`  | Emit `stringValue` tokens with the complete value     |
 | `streamStrings` / `streamValues` | `true`  | Emit `startString`/`stringChunk`/`endString` tokens   |
-| `separator`                      | `','`   | Field separator character                             |
+| `separator`                      | `','`   | Field separator, one or more characters               |
 | `ignoreBOM`                      | `false` | Keep a leading byte-order mark instead of dropping it |
 
 ### stringer options
@@ -149,7 +152,7 @@ exports exactly as in the ESM imports above — every default export has a named
 | Option                          | Default  | Description                                                                 |
 | ------------------------------- | -------- | --------------------------------------------------------------------------- |
 | `useStringValues` / `useValues` | `false`  | Use packed `stringValue` tokens instead of streamed chunks                  |
-| `separator`                     | `','`    | Field separator character                                                   |
+| `separator`                     | `','`    | Field separator, one or more characters                                     |
 | `rowTerminator`                 | `'\r\n'` | Row terminator string. CRLF per RFC 4180; pass `'\n'` for Unix-style output |
 
 ### asObjects options

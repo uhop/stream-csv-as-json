@@ -24,7 +24,7 @@ declare namespace stringer {
     useStringValues?: boolean;
     /** Alias for `useStringValues`. */
     useValues?: boolean;
-    /** Field separator character. Default: `','`. */
+    /** Field separator, one or more characters. Default: `','`. */
     separator?: string;
     /**
      * Row terminator string. Default: `'\r\n'` per RFC 4180.

@@ -22,23 +22,32 @@ const stringer = options => {
   let skipSeparator = false;
 
   if (useStringValues) {
+    // a row of one empty field is quoted: a blank line parses as a row of no fields
+    let loneEmpty = false;
     return flushable(chunk => {
       if (chunk === none) return none;
       switch (chunk.name) {
         case 'startArray':
           skipSeparator = true;
+          loneEmpty = false;
           return none;
         case 'endArray':
+          if (loneEmpty) {
+            loneEmpty = false;
+            return '""' + rowTerminator;
+          }
           return rowTerminator;
         case 'stringValue': {
+          const value = chunk.value;
           let result;
           if (skipSeparator) {
             skipSeparator = false;
+            loneEmpty = !value;
             result = '';
           } else {
+            loneEmpty = false;
             result = separator;
           }
-          const value = chunk.value;
           if (containsQuotables.test(value)) {
             return result + '"' + value.replace(/"/g, '""') + '"';
           }
@@ -59,7 +68,8 @@ const stringer = options => {
   }
 
   // a sink that encodes each string alone needs every surrogate pair within one string
-  let heldSurrogate = '';
+  let heldSurrogate = '',
+    inKey = false;
 
   const takeHeld = () => {
     const held = heldSurrogate;
@@ -88,6 +98,7 @@ const stringer = options => {
       case 'endString':
         return heldSurrogate ? takeHeld() + '"' : '"';
       case 'stringChunk': {
+        if (inKey) return none;
         let value = chunk.value.replace(/"/g, '""');
         if (heldSurrogate) value = takeHeld() + value;
         const last = value.charCodeAt(value.length - 1);
@@ -98,11 +109,15 @@ const stringer = options => {
         }
         return value;
       }
+      case 'startKey':
+        inKey = true;
+        return none;
+      case 'endKey':
+        inKey = false;
+        return none;
       case 'stringValue':
       case 'startObject':
       case 'endObject':
-      case 'startKey':
-      case 'endKey':
       case 'keyValue':
         return none;
     }

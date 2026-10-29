@@ -2,6 +2,7 @@
 
 import test from 'tape-six';
 import {chain} from 'stream-chain/web';
+import {none} from 'stream-chain/core';
 
 import parser from '../../src/web/parser.js';
 import stringer from '../../src/web/stringer.js';
@@ -104,4 +105,46 @@ test.asPromise('stringer (web): useValues tab separator', async (t, resolve, rej
   } catch (e) {
     reject(e);
   }
+});
+
+const writeTokens = (tokens, options) => {
+  const write = stringer(options);
+  let out = '';
+  for (const token of [...tokens, none]) {
+    const result = write(token);
+    if (result !== none) out += result;
+  }
+  return out;
+};
+
+const field = value => [{name: 'startString'}, {name: 'stringChunk', value}, {name: 'endString'}, {name: 'stringValue', value}];
+const key = value => [{name: 'startKey'}, {name: 'stringChunk', value}, {name: 'endKey'}, {name: 'keyValue', value}];
+
+test('stringer (web): object tokens are ignored', t => {
+  const row = [{name: 'startArray'}, ...field('1'), ...field('two'), {name: 'endArray'}];
+  const withObjectTokens = [
+    {name: 'startObject'},
+    {name: 'startArray'},
+    ...key('a'),
+    ...field('1'),
+    ...key('b'),
+    ...field('two'),
+    {name: 'endArray'},
+    {name: 'endObject'}
+  ];
+  for (const options of [undefined, {useValues: true}]) {
+    t.equal(writeTokens(withObjectTokens, options), writeTokens(row, options), JSON.stringify(options ?? {}));
+  }
+});
+
+test('stringer (web): useValues writes a row of one empty field as ""', t => {
+  const rows = [
+    {name: 'startArray'},
+    {name: 'stringValue', value: ''},
+    {name: 'endArray'},
+    {name: 'startArray'},
+    {name: 'stringValue', value: 'a'},
+    {name: 'endArray'}
+  ];
+  t.equal(writeTokens(rows, {useValues: true}), '""\r\na\r\n');
 });

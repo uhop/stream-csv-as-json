@@ -26,7 +26,7 @@ import {chain} from 'stream-chain/web';
 import parser from 'stream-csv-as-json/web/parser.js';
 import asObjects from 'stream-csv-as-json/web/as-objects.js';
 
-const pipeline = chain([response.body.pipeThrough(new TextDecoderStream()), parser(), asObjects()]);
+const pipeline = chain([response.body, parser(), asObjects()]);
 
 for await (const token of pipeline.readable) console.log(token);
 ```

@@ -86,13 +86,14 @@ interchange protocol shared with `stream-json`. The `.d.ts` exports these as dis
 4. Parser options control packing and streaming:
    - `packStrings`/`packValues` (default: true) — emit `stringValue` tokens with the complete field value.
    - `streamStrings`/`streamValues` (default: true) — emit `startString`/`stringChunk`/`endString` tokens for incremental processing.
-   - `separator` (default: `','`) — field separator character.
+   - `separator` (default: `','`) — field separator, one or more characters.
    - `ignoreBOM` (default: false) — keep a leading byte-order mark instead of dropping it.
 5. The value state takes a `charCodeAt` whole-field fast path: it scans an unquoted field (or a quoted field, decoding `""` escapes) to its terminator in a
    single pass and emits one set of tokens with no regex engine — when the terminating separator/CR/LF is already in the buffer. Fields that abut the buffer
-   tail, empty fields, row terminators, and multi-char separators fall back **verbatim** to the incremental sticky-regex (`/y` flag) machine, which preserves
-   exact resumability and error behavior. Structural tokens (`startArray`/`endArray`/`startString`/`endString`) are module-level singletons. Each parser
-   instance gets its own regex pattern set built from the configured separator.
+   tail, empty fields, row terminators, and multi-char separators fall back **verbatim** to the incremental sticky-regex (`/y` flag) machine. There, the start
+   of a multi-char separator at the buffer tail waits for the next chunk (`separatorPending`) instead of being read as data. The machine preserves exact
+   resumability and error behavior. Structural tokens (`startArray`/`endArray`/`startString`/`endString`) are module-level singletons. Each parser instance gets
+   its own regex pattern set built from the configured separator.
 6. Handles quoted fields (RFC 4180): double-quote escaping, embedded separators, embedded newlines. CRLF is the spec line terminator; the parser also accepts LF
    and bare CR.
 7. Drops one leading byte-order mark (`U+FEFF`) through `fixUtf8Stream()`, whether the input is bytes or strings, unless `ignoreBOM` is set; the tokenizer
@@ -135,7 +136,10 @@ Two modes:
 1. **Stream mode** (default): Consumes `startString`/`stringChunk`/`endString` tokens. Always quotes fields (wraps in `"`), escapes `"` as `""`. Holds a
    trailing high surrogate of a `stringChunk` for the next output string (emitted with the closing quote, or at flush), so a pair split by any token source
    reaches a sink whole. CSV has no escape for a lone surrogate, so this is the only protection a sink gets.
-2. **Value mode** (`useStringValues: true`): Consumes `stringValue` tokens. Quotes only when necessary (field contains separator, `"`, `\r`, or `\n`).
+2. **Value mode** (`useStringValues: true`): Consumes `stringValue` tokens. Quotes only when necessary (field contains separator, `"`, `\r`, or `\n`, or is the
+   only field of its row and empty, since the parser reads a blank line as a row of no fields).
+
+Object tokens, `startKey`/`endKey` with the `stringChunk` tokens between them included, are ignored in both modes.
 
 Options: `useStringValues`/`useValues` (default: false), `separator` (default: `','`), `rowTerminator` (default: `'\r\n'`; override with `'\n'` for Unix-style
 output). Methods: `stringer.asStream(options)` (Node), `stringer.asWebStream(options)` (Web).

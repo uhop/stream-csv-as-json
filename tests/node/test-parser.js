@@ -311,6 +311,36 @@ test('parser: csvParser leaves a leading BOM in the first field', t => {
   );
 });
 
+test('parser: a multi-character separator split between chunks', async t => {
+  const input = 'a||b\r\n"c"||"d"\r\n||\r\n',
+    expected = [
+      ['a', 'b'],
+      ['c', 'd'],
+      ['', '']
+    ];
+  for (let quant = 1; quant <= 6; ++quant) {
+    t.deepEqual(await rowsOf(readString(input, quant), {separator: '||'}), expected, 'quant=' + quant);
+  }
+});
+
+test('parser: an unquoted field may hold characters of a multi-character separator', async t => {
+  const input = 'a|b||c\r\nd||e|\r\n|f||g\r\n',
+    expected = [
+      ['a|b', 'c'],
+      ['d', 'e|'],
+      ['|f', 'g']
+    ];
+  for (let quant = 1; quant <= 6; ++quant) {
+    t.deepEqual(await rowsOf(readString(input, quant), {separator: '||'}), expected, 'quant=' + quant);
+  }
+});
+
+test('parser: an ambiguous multi-character separator splits at its earliest match', async t => {
+  for (let quant = 1; quant <= 6; ++quant) {
+    t.deepEqual(await rowsOf(readString('a|||b\r\n', quant), {separator: '||'}), [['a', '|b']], 'quant=' + quant);
+  }
+});
+
 test.asPromise('parser: throws on character after closing quote', (t, resolve, reject) => {
   const input = '"a"b,c\r\n';
 

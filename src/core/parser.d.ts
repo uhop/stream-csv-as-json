@@ -50,7 +50,7 @@ declare namespace parser {
     streamStrings?: boolean;
     /** Alias for `streamStrings`. */
     streamValues?: boolean;
-    /** Field separator character. Default: `','`. */
+    /** Field separator, one or more characters. Default: `','`. */
     separator?: string;
     /** Keep a byte-order mark (U+FEFF) that starts the input instead of dropping it. Default: `false`. */
     ignoreBOM?: boolean;

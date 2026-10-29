@@ -46,7 +46,7 @@ import {chain} from 'stream-chain/web';
 import parser from 'stream-csv-as-json/web/parser.js';
 import asObjects from 'stream-csv-as-json/web/as-objects.js';
 
-const pipeline = chain([response.body.pipeThrough(new TextDecoderStream()), parser(), asObjects()]);
+const pipeline = chain([response.body, parser(), asObjects()]);
 
 for await (const token of pipeline.readable) console.log(token);
 ```
@@ -137,7 +137,7 @@ Options:
 - `packValues` (boolean) — alias for `packStrings`.
 - `streamStrings` (boolean, default: true) — emit `startString`/`stringChunk`/`endString` tokens.
 - `streamValues` (boolean) — alias for `streamStrings`.
-- `separator` (string, default: `','`) — field separator character.
+- `separator` (string, default: `','`) — field separator, one or more characters.
 - `ignoreBOM` (boolean, default: false) — keep a byte-order mark (`U+FEFF`) that starts the input instead of dropping it, as `TextDecoder`'s option of the same name does.
 
 If `packStrings` is false, `streamStrings` is forced to true (at least one representation must be emitted).
@@ -145,7 +145,8 @@ If `packStrings` is false, `streamStrings` is forced to true (at least one repre
 CSV parsing:
 - Handles quoted fields per RFC 4180: double-quote escaping (`""` → `"`), embedded separators, embedded newlines.
 - Row terminator acceptance is lenient — CRLF (RFC 4180), LF, and bare CR all work.
-- One leading byte-order mark (`U+FEFF`) is dropped, whether the input is bytes or strings, unless `ignoreBOM` is set. A second `U+FEFF` stays in the first field. The drop happens in stream-chain's `fixUtf8Stream()`, so `csvParser()` alone drops nothing.
+- A separator can be several characters long (`||`). An unquoted field may hold its characters, but not the whole separator. Where the text next to a separator makes the split ambiguous (`a|||b` with `||`), the earliest separator wins (`a`, then `|b`): the ambiguity belongs to the caller who chose the separator, so quote a field that ends with the separator's first characters. A separator split between chunks is read whole.
+- One leading byte-order mark (`U+FEFF`) is dropped, whether the input is bytes or strings, unless `ignoreBOM` is set. A second `U+FEFF` stays in the first field. The drop happens in stream-chain's `fixUtf8Stream()`, so `csvParser()` alone drops nothing. Pass bytes straight to `parser()` (`chain([response.body, parser()])`): a `TextDecoderStream` in front drops a leading BOM too, so an input opening with two loses both, and Node 26's `TextDecoder` drops both by itself when a chunk boundary splits the first mark's bytes.
 - A surrogate pair is never split between two `stringChunk` tokens: a chunk that would end on a high surrogate holds it for the next chunk, so a sink that encodes each chunk alone writes the character, not two U+FFFD. A lone high surrogate at the end of a field is emitted as its own chunk before `endString`.
 - Each row is represented as an array: `startArray`, field tokens, `endArray`.
 - Uses sticky RegExp (`/y` flag) for performance; each parser instance owns its own pattern set.
@@ -276,13 +277,15 @@ Options:
 
 - `useStringValues` (boolean, default: false) — use `stringValue` tokens instead of `startString`/`stringChunk`/`endString`.
 - `useValues` (boolean) — alias for `useStringValues`.
-- `separator` (string, default: `','`) — field separator character.
+- `separator` (string, default: `','`) — field separator, one or more characters.
 - `rowTerminator` (string, default: `'\r\n'`) — row terminator string. CRLF per RFC 4180; override with `'\n'` for Unix-style output.
 
 Two modes:
 
 1. **Stream mode** (default, `useStringValues: false`): Consumes `startString`/`stringChunk`/`endString` tokens. Always quotes fields (wraps in `"`), escapes `"` as `""`. A surrogate pair split between two `stringChunk` tokens is written within one output string, so a sink that encodes each string alone (a Node `fs.WriteStream`) writes the character.
-2. **Value mode** (`useStringValues: true`): Consumes `stringValue` tokens. Quotes only when necessary (field contains separator, `"`, `\r`, or `\n`).
+2. **Value mode** (`useStringValues: true`): Consumes `stringValue` tokens. Quotes only when necessary (field contains separator, `"`, `\r`, or `\n`, or is the only field of its row and empty: the parser reads a blank line as a row of no fields, so a row of one empty field is written as `""`).
+
+Object tokens (`startObject`, `endObject`, `keyValue`, and `startKey`/`endKey` with the `stringChunk` tokens between them) are ignored in both modes. Rows come from `startArray`/`endArray`, so the stringer is not designed for `asObjects` output: use it directly after the parser.
 
 Rows are terminated with the configured `rowTerminator` (default `\r\n` per RFC 4180).
 
@@ -418,7 +421,7 @@ import parser from 'stream-csv-as-json/web/parser.js';
 import asObjects from 'stream-csv-as-json/web/as-objects.js';
 
 const response = await fetch('/data.csv');
-const pipeline = chain([response.body.pipeThrough(new TextDecoderStream()), parser(), asObjects()]);
+const pipeline = chain([response.body, parser(), asObjects()]);
 
 for await (const token of pipeline.readable) {
   if (token.name === 'keyValue') console.log('field:', token.value);
