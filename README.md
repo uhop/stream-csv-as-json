@@ -147,6 +147,8 @@ exports exactly as in the ESM imports above — every default export has a named
 | `separator`                      | `','`   | Field separator, one or more characters               |
 | `ignoreBOM`                      | `false` | Keep a leading byte-order mark instead of dropping it |
 
+The library is built for CSV (comma) and TSV (tab); other separators, including longer ones, work as extras.
+
 ### stringer options
 
 | Option                          | Default  | Description                                                                 |
