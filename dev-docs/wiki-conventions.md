@@ -35,7 +35,8 @@ Every module page documents all its exports. Compact components are documented i
 Summary:
 
 - Named modules use the module name as-is.
-- If the name contains dashes, use a Unicode hyphen (U+2010 `‐`) instead of a regular dash. See `~/Open/tape-six/wiki/` for examples.
+- If the name contains dashes, use a Unicode hyphen (U+2010 `‐`) instead of a regular dash. For examples, see the
+  [tape-six wiki](https://github.com/uhop/tape-six/wiki).
 - Unnamed modules (`index.js`) get a descriptive page name.
 - Subdirectory modules join folder and file names with a dash: `abc/utils/helper.js` → `utils-helper.md`.
 - Unnamed modules in folders use the folder name: `utils/index.js` → `utils.md`.

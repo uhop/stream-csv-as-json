@@ -197,6 +197,7 @@ BSD-3-Clause
 
 ## Release history
 
+- 3.1.0 _New `ignoreBOM` option and `csvParser` export, surrogate pairs kept whole across chunks, multi-character separator fixes._
 - 3.0.0 _ESM-native. Web Streams support. Node-only file-edge components (`parseFile`, `stringerToFile`). Improved parser. See the
   [Migration guide](https://github.com/uhop/stream-csv-as-json/wiki/Migration-from-2.x-to-3.x)._
 - 2.1.0 _Configurable `rowTerminator` on `stringer`. `asObjects` header now auto-detects parser mode. Minor bugfixes._
