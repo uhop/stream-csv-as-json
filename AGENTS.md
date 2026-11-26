@@ -94,20 +94,18 @@ stream-csv-as-json/
 - **Browser safety is load-bearing.** Nothing reachable from `src/core/*`, `src/web/*`, `tests/web/*`, or `tests/web-helpers.js` may import `node:*`. Web tests
   use `stream-json/web/assembler.js`, never `stream-json/assembler.js`. Two checks, in increasing order of strength:
   - a grep audit — `grep -rnE "(from|require\()\s*['\"]node:" src/core src/web tests/web tests/web-helpers.js` must return nothing;
-  - `npm run test:browser` — the `tests/web/` suite in real headless chromium, where a `node:*` leak simply fails to load. The CLI runtimes (Node/Bun/Deno) all
-    expose `node:`, so **only this run actually proves the invariant**.
-- **`test:browser` is development-only and must never enter CI.** `tape-six-puppeteer` is a normal `devDependency`; what keeps it safe is the repo's **`.npmrc`
-  carrying `ignore-scripts=true`**. That line is load-bearing, not hygiene: without it `npm install` runs two postinstalls — `puppeteer`'s `node install.mjs`
-  and tape-six-puppeteer's `puppeteer browsers install chrome` — and a corrupt Chrome download once failed `npm ci` before any test ran. Note the original break
-  was **not** the script running in CI (the workflow never invoked it); it was the devDep's postinstall during `npm ci`. Do not remove `ignore-scripts`, and do
-  not add `test:browser` to `.github/workflows/`. In particular, do not swap it for `package.json`'s `allowScripts` — that field needs npm 11.16+, so the npm
-  10.9 that Node 22 bundles ignores it silently and the postinstall runs anyway (this exact swap turned CI red on 2026-07-28; the Node 22 matrix cell is the one
-  that fails).
+  - `npm run test:browser` — the `tests/web/` suite in real headless chromium, where a `node:*` leak fails to load. The CLI runtimes (Node/Bun/Deno) all expose
+    `node:`, so **only this run proves the invariant**.
+- **`test:browser` is development-only and must never enter CI.** `tape-six-puppeteer` is a normal `devDependency`; what keeps it safe is the repository's
+  **`.npmrc` carrying `ignore-scripts=true`**. Without that line `npm install` and `npm ci` run two postinstalls: `puppeteer`'s `node install.mjs` and
+  tape-six-puppeteer's `puppeteer browsers install chrome`. Do not remove `ignore-scripts`, and do not add `test:browser` to `.github/workflows/`. Do not swap
+  the `.npmrc` line for `package.json`'s `allowScripts`: that field needs npm 11.16+, so the npm 10.9 that Node 22 bundles ignores it silently and the
+  postinstall runs anyway.
 - **The browser is installed by hand**, once per machine: `npm run browser:install` (or point `PUPPETEER_EXECUTABLE_PATH` at an existing binary). Puppeteer pins
   an exact build, so a cached but different Chrome version is not a match.
-- **No CJS export artifacts.** Don't attach `x.x = x` self-aliases (e.g. `parser.parser = parser`) to exported functions — pure ESM uses
-  `export default X; export {X}` (the named-export mirror) for both import forms; `import {parser} from '…'` already works. The `.asStream` / `.asWebStream`
-  adapter methods are real API, not artifacts.
+- **No CJS export artifacts.** Don't attach `x.x = x` self-aliases (`parser.parser = parser`) to exported functions: `export default X; export {X}` (the
+  named-export mirror) serves both import forms, so `import {parser} from '…'` works. The `.asStream` / `.asWebStream` adapter methods are real API, not
+  artifacts.
 - **Do not modify or delete test expectations** without understanding why they changed.
 - **Token-based architecture.** The parser produces `{name, value}` tokens compatible with `stream-json`'s token protocol. All components operate on this
   protocol.
@@ -128,7 +126,7 @@ stream-csv-as-json/
     field start and after a closing quote. Without it the start is read as data, or as an error after a quote.
   - With a multi-char separator, an unquoted field matches `(?:(?!SEP)[^\r\n]){1,256}` (`multiCharRegularValue`), so it may hold the separator's characters, and
     a match that ends at the buffer tail gives back the characters that may start the separator (`separatorStartLength`) until the next chunk decides. An
-    ambiguous input splits at the earliest separator; the ambiguity is the caller's (Eugene, 2026-10-28). A single-char separator keeps the `[^SEP\r\n]` class.
+    ambiguous input splits at the earliest separator; the ambiguity is the caller's. A single-char separator keeps the `[^SEP\r\n]` class.
   - Reads CRLF (RFC 4180), LF, and bare CR as row terminators.
   - Drops one leading byte-order mark (`U+FEFF`) through stream-chain's `fixUtf8Stream()`, unless `ignoreBOM` is set; `csvParser()` alone drops nothing. Don't
     strip it in the tokenizer too: a second strip drops a `U+FEFF` that belongs to the data.
